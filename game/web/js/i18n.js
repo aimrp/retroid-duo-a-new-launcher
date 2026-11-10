@@ -36,7 +36,7 @@
     '注意：这一关的勇者学会了螺旋桨帽——会二段跳，还能慢慢飘。': 'Careful: heroes here wear propeller caps — double jump and slow glide.',
     '最后一道防线：勇者带上了无敌星，碰到他就要掉血，快跑！': 'Last line: heroes carry the star. Touch him and you get hurt — run!',
     // —— 对战 ——
-    '守住了！': 'Held!', '防线失守……公主被救走了': 'Line lost… the princess is gone',
+    '守住了！': 'Held!', '防线失守……勇者闯过去了': 'Line lost… the hero broke through',
     '勇者的命全用完了！': 'The hero is out of lives!',
     '暂停': 'Paused', '继续': 'Resume', '重新开始': 'Restart', 'A/B 键对调': 'Swap A/B', 'X/Y 键对调': 'Swap X/Y',
     '音乐': 'Music', '回到标题': 'Back to title', '退出游戏': 'Quit game',
@@ -62,8 +62,7 @@
     'A 从第一关重新开始     B 回到标题': 'A  Restart from line 1     B  Back to title',
     'A 从第一关重开': 'A  Restart from line 1',
     '防线失守 · 公主被带走了': 'Line fallen · the princess was carried off',
-    '这一局，公主已经被救走了': 'This run is lost — the princess has been carried off',
-    '这一局，公主已经被救走了——三关必须全部守住。': 'This run is lost — the princess has been carried off. All three lines must hold.',
+    '公主还在，守住剩下的防线。': 'The princess is still safe. Hold the remaining lines.',
     '最后一道防线，守住了！': 'The last line held!',
     '我们没能守住每一次，可最后这一道，我们守住了。': "We didn't hold every line. But we held the last one.",
     '勇者冲过了这条线，一路杀进城堡，把公主救走了。': 'The hero broke through, stormed the castle, and rescued the princess.',

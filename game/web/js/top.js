@@ -541,7 +541,7 @@
     if (g.phase === 'spawn' && g.heroRound > 0) txt(`第 ${g.heroRound + 1} 位勇者：${SH.HERO_FORMS[g.hero.tier].name}！`, 160, 40, 11, '#ffe066', 'center');
     if (g.phase === 'heroDown') txt(g.heroLives > 0 ? `勇者倒下了！还剩 ${g.heroLives} 条命…` : '勇者的命全用完了！', 160, 50, 11, '#ffffff', 'center');
     if (g.phase === 'victory') txt('守住了！', 160, 60, 22, '#ffe066', 'center');
-    if (g.phase === 'defeat') txt('防线失守……公主被救走了', 160, 60, 16, '#ff8a8a', 'center');
+    if (g.phase === 'defeat') txt('防线失守……勇者闯过去了', 160, 60, 16, '#ff8a8a', 'center');
     if (app.paused) {
       txt('暂停', 160, 26, 14, '#ffe066', 'center');
       PMENU.forEach((m, i) => {
@@ -808,7 +808,7 @@
     if (t > 40) txt(typed(c[1], 40, t, 3), 160, 68, 7.5, '#ffffff', 'center', { weight: 700 });
     const nd = SH.DEFENDERS[SH.LEVELS[app.level + 1].defender];
     if (t > 120) txt(`下一位守关者：${nd.name}`, 160, 96, 9, '#7dffb0', 'center');
-    if (t > 150) txt('这一局，公主已经被救走了——三关必须全部守住。', 160, 114, 6.5, '#ff9a9a', 'center', { weight: 700 });
+    if (t > 150) txt('公主还在，守住剩下的防线。', 160, 114, 6.5, '#ff9a9a', 'center', { weight: 700 });
     if (t > 160 && (t >> 5) % 2) txt('按 A 继续', 160, 140, 8, '#cfe8ff', 'center');
     if ((t > 60 && (inp.pressed.A || inp.pressed.START)) || (DEMO && t > 260)) { AU.stop(); nextLevel(); }
   }
