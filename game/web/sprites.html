@@ -1,0 +1,6 @@
+<!doctype html><html><head><meta charset="utf-8"><title>精灵表</title>
+<style>body{background:#6cc4ff;margin:0;padding:8px;font:11px sans-serif;display:flex;flex-wrap:wrap;gap:10px}div{text-align:center}canvas{image-rendering:pixelated;display:block;background:rgba(0,0,0,.08)}</style></head><body>
+<script src="js/art.js"></script><script>
+for (const k in ART.S){const c=ART.mk(k, /_/.test(k)&&k.startsWith('heroB')?null:null);const z=5;const d=document.createElement('div');const o=document.createElement('canvas');o.width=c.width*z;o.height=c.height*z;const x=o.getContext('2d');x.imageSmoothingEnabled=false;x.drawImage(c,0,0,o.width,o.height);d.appendChild(o);d.appendChild(document.createTextNode(k));document.body.appendChild(d);}
+{const c=ART.mk('heroB_stand',ART.firePal);const o=document.createElement('canvas');o.width=60;o.height=120;const x=o.getContext('2d');x.imageSmoothingEnabled=false;x.drawImage(c,0,0,60,120);const d=document.createElement('div');d.appendChild(o);d.append('fire');document.body.appendChild(d);}
+</script></body></html>

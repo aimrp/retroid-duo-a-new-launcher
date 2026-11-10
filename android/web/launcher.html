@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<style>
+/* 下屏 · Platinum：铂金色面板、凸起按键、像笔记本触控板的触摸区。动画只有一颗呼吸指示灯（opacity），省 CPU。 */
+:root{--plat:#dedbd5;--ink:#1f1e1b;--ink2:#625e57;--line:#8f8b84;--sel:#2c56c9;--warn:#b5481f}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{margin:0;height:100%;overflow:hidden;color:var(--ink);font-family:"Noto Sans SC","Roboto",system-ui,sans-serif;touch-action:manipulation;
+ background:linear-gradient(#e7e5e0,#d3d0c9)}
+#app{height:100%;display:flex;flex-direction:column}
+.top{height:58px;flex:none;display:flex;align-items:center;gap:12px;padding:0 16px;
+ background:linear-gradient(#fbfaf8,#e4e2dd);border-bottom:1px solid var(--line);box-shadow:0 1px 4px rgba(0,0,0,.12)}
+.cat{width:34px;height:34px;border-radius:50%;flex:none;object-fit:cover;box-shadow:0 0 0 1px rgba(0,0,0,.2),0 1px 3px rgba(0,0,0,.2)}
+.who{min-width:0;flex:1}
+.who b{display:block;font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.who span{font-size:12px;color:var(--ink2)}
+/* 呼吸指示灯：像老 Mac 睡眠灯，慢慢亮暗。用 steps 一秒只换约 3 帧：连续动画会让整屏 60 帧重绘，实测多吃 20%+ CPU */
+.led{width:9px;height:9px;border-radius:50%;flex:none;background:radial-gradient(circle at 40% 35%,#fff,#e9f2ff 45%,#9fb8e0);
+ box-shadow:0 0 6px 2px rgba(190,215,255,.9),0 0 0 1px rgba(0,0,0,.18);animation:sleep 4.2s steps(14) infinite}
+@keyframes sleep{0%,100%{opacity:.15}50%{opacity:1}}
+/* 分段控件 */
+.chips{height:50px;flex:none;display:flex;padding:10px 14px 0}
+.chip{flex:1;display:flex;align-items:center;justify-content:center;font-size:15px;color:var(--ink);
+ background:linear-gradient(#fdfcfa,#e2dfd9);border:1px solid #7d7972;border-left-width:0;box-shadow:inset 0 1px 0 #fff}
+.chip:first-child{border-left-width:1px;border-radius:9px 0 0 9px}
+.chip:last-child{border-radius:0 9px 9px 0}
+.chip.on{color:#fff;background:linear-gradient(#5b5853,#3b3935);border-color:#2f2d2a;box-shadow:inset 0 2px 4px rgba(0,0,0,.4)}
+.chip.auto::after{content:" · 自动";font-size:11px;opacity:.65}
+.body{flex:1;min-height:0;padding:12px 14px 14px;display:flex;flex-direction:column;gap:10px}
+/* 凸起按键 */
+.grid{flex:1;min-height:0;display:grid;gap:12px}
+.g4{grid-template-columns:repeat(4,1fr);grid-template-rows:1fr 1fr}
+.btn{border-radius:14px;border:1px solid #8a867f;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;
+ font-size:16px;font-weight:600;color:var(--ink);position:relative;
+ background:linear-gradient(#fdfcfa,#e3e0da);box-shadow:inset 0 1px 0 #fff,0 3px 0 #a9a59e,0 4px 8px rgba(0,0,0,.14);transition:transform .06s}
+.btn svg{width:30px;height:30px;color:#2c2b28}
+.btn span{font-size:13px;color:var(--ink2);font-weight:500}
+.btn.down{transform:translateY(3px);background:linear-gradient(#e2dfd9,#d3d0c9);box-shadow:inset 0 1px 3px rgba(0,0,0,.25),0 0 0 #a9a59e}
+.btn.hot svg,.btn.hot span{color:var(--warn)}
+/* 触摸板：哑光铝的触控板 */
+.pad{flex:1;min-height:0;border-radius:16px;position:relative;touch-action:none;display:flex;align-items:center;justify-content:center;
+ color:#7a766f;font-size:14px;text-align:center;line-height:1.9;
+ background:linear-gradient(160deg,#cfccc6,#c2bfb8);border:1px solid #9a968f;
+ box-shadow:inset 0 2px 6px rgba(0,0,0,.18),inset 0 -1px 0 rgba(255,255,255,.5),0 1px 0 rgba(255,255,255,.7)}
+.split{flex:1;min-height:0;display:flex;gap:12px}
+.keys{flex:none;width:calc(33.3% - 6px);display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(4,1fr);gap:10px}
+.keys .btn{gap:4px;border-radius:12px}
+.keys .btn svg{width:26px;height:26px}
+.keys .btn span{font-size:12px}
+.split .pad{flex:1;min-width:0;line-height:1.7;font-size:13px}
+.split .pad b{font-size:18px}
+.pad.off{touch-action:auto}
+.pad.live{background:linear-gradient(160deg,#c8c5bf,#bbb8b1)}
+.pad b{font-size:20px;font-weight:600;color:#55524c}
+/* 媒体 */
+.media{flex:1;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px}
+.mrow{display:flex;align-items:center;gap:40px}
+.mplay{width:128px;height:128px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex:none;
+ background:radial-gradient(circle at 50% 30%,#fdfdfc,#d9d6d0 55%,#b9b5ae);border:1px solid #7d7972;
+ box-shadow:inset 0 2px 0 #fff,inset 0 -4px 10px rgba(0,0,0,.12),0 6px 16px rgba(0,0,0,.22);transition:transform .06s}
+.mplay svg{width:52px;height:52px;color:#2c2b28}
+.mside{width:96px;height:96px;border-radius:50%}
+.mside svg{width:30px;height:30px}
+.mvol{display:flex;gap:14px}
+.mvol .btn{width:124px;height:54px;flex-direction:row;border-radius:12px}
+.mvol .btn svg{width:22px;height:22px}
+.mplay.down{transform:scale(.96);box-shadow:inset 0 3px 8px rgba(0,0,0,.25)}
+.warn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;color:var(--warn);font-size:16px;line-height:1.8;gap:6px}
+.warn small{color:var(--ink2)!important}
+.toast{position:fixed;left:50%;top:70px;transform:translateX(-50%);padding:8px 16px;border-radius:8px;font-size:15px;z-index:20;pointer-events:none;
+ background:#fbfaf8;border:1px solid #4d4a45;box-shadow:0 6px 16px rgba(0,0,0,.25);opacity:0;transition:opacity .2s;max-width:90%}
+.toast.show{opacity:1}
+
+/* 音乐：iPod 式转盘 + 液晶小屏 */
+.ipod{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;gap:22px}
+.lcd{width:236px;height:min(300px,100%);flex:none;border-radius:12px;border:1px solid #6e6b65;padding:14px 16px;display:flex;flex-direction:column;gap:6px;
+ background:linear-gradient(#d3e0ea,#aec0d0);box-shadow:inset 0 2px 8px rgba(0,0,0,.28),0 1px 0 #fff;color:#1b2a37;overflow:hidden}
+.lcd .bar{display:flex;justify-content:space-between;font-size:12px;padding-bottom:6px;border-bottom:1px solid rgba(27,42,55,.35)}
+.lcd .ttl{font-size:20px;font-weight:700;margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lcd .ar{font-size:13px;margin-top:-4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.8}
+.lcd .ly{font-size:15px;font-weight:600;line-height:1.35;min-height:2.7em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;
+ border-top:1px dashed rgba(27,42,55,.35);padding-top:6px;margin-top:2px}
+.lcd .ly:empty{display:none}
+.lcd .pb{height:6px;border:1px solid #1b2a37;border-radius:3px;position:relative;overflow:hidden}
+.lcd .pb i{position:absolute;left:0;top:0;bottom:0;width:0;background:#1b2a37}
+.lcd .st{font-size:14px;display:flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums}
+.lcd .st span{display:flex;align-items:center;gap:6px}
+.lcd .st em{font-style:normal;margin-left:auto;font-size:12px}
+.lcd .st svg{width:16px;height:16px}
+.lcd .gap{flex:1}
+.lcd .vl{font-size:12px;display:flex;justify-content:space-between}
+.lcd .vb{height:12px;border:1.5px solid #1b2a37;border-radius:3px;padding:1.5px}
+.lcd .vb i{display:block;width:0;height:100%;background:#1b2a37;border-radius:1px;transition:width .15s}
+.lcd .modes{display:flex;align-items:center;gap:8px;margin-top:6px}
+.lcd .mb{padding:3px 10px;border:1.5px solid #1b2a37;border-radius:12px;font-size:13px}
+.lcd .mb.on{background:#1b2a37;color:#d3e0ea}
+.lcd .modes em{font-size:11.5px;opacity:.7;font-style:normal;margin-left:auto}
+.lcd .hint{font-size:11.5px;opacity:.7;margin-top:4px}
+.wheel{position:relative;height:min(330px,100%);aspect-ratio:1;flex:none;border-radius:50%;touch-action:none;
+ background:radial-gradient(circle at 50% 30%,#ffffff,#ebe9e4 58%,#d6d3cc);border:1px solid #8a867f;
+ box-shadow:inset 0 2px 0 #fff,inset 0 -8px 16px rgba(0,0,0,.07),0 6px 18px rgba(0,0,0,.2)}
+.wheel.turn{box-shadow:inset 0 2px 0 #fff,inset 0 -8px 16px rgba(0,0,0,.07),0 6px 18px rgba(0,0,0,.2),0 0 0 4px rgba(44,86,201,.22)}
+.wheel .z{position:absolute;display:flex;align-items:center;justify-content:center;color:#8b877f;font-size:15px;font-weight:700;letter-spacing:1.5px;transition:color .1s}
+.wheel .z svg{width:28px;height:28px}
+.wheel .z.t{left:0;right:0;top:7%}
+.wheel .z.b{left:0;right:0;bottom:7%}
+.wheel .z.l{top:0;bottom:0;left:7%}
+.wheel .z.r{top:0;bottom:0;right:7%}
+.wheel .z.on{color:#2c56c9}
+.wheel .hub{position:absolute;inset:31%;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#2c2b28;
+ background:linear-gradient(#f8f7f4,#d8d5cf);border:1px solid #8a867f;box-shadow:inset 0 1px 0 #fff,0 2px 6px rgba(0,0,0,.2);transition:transform .06s}
+.wheel .hub svg{width:42px;height:42px}
+.wheel .hub.on{transform:scale(.95);background:linear-gradient(#e2dfd9,#cfccc5)}
+</style></head>
+<body>
+<div id="app">
+  <div class="top"><img class="cat" src="mochi.png" alt=""><div class="who"><b id="label">桌面</b><span id="sub">下屏 · 控制台</span></div><i class="led"></i></div>
+  <div class="chips" id="chips"></div>
+  <div class="body" id="body"></div>
+</div>
+<div class="toast" id="toast"></div>
+<script src="lyric.js"></script>
+<script>
+const H = window.DuoLauncher, $ = (id) => document.getElementById(id);
+const MODES = [["bar","控制台"],["media","媒体"]];   // 控制台 = 左边 8 个按键 + 右边触摸板
+let S = { pkg:"home", label:"桌面", mode:"bar", access:false, mediaKind:"video" };
+let manual = null;   // 手动选中模式（null=自动）；上屏应用切换后回到自动
+const norm = (m) => m === "pad" ? "bar" : m;   // 触摸板并进了控制台
+const eff = () => norm(manual !== null ? manual : S.mode);
+let playing = false;  // 真实播放状态：每秒问一次系统（AudioManager.isMusicActive），点了播放键先乐观翻转
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function toast(t){const e=$("toast");e.textContent=t;e.classList.add("show");clearTimeout(e._t);e._t=setTimeout(()=>e.classList.remove("show"),2000);}
+const IC = {
+  back:'<path d="M15 18l-6-6 6-6"/>',
+  home:'<path d="M3 10.5 12 3l9 7.5"/><path d="M5 10v10h14V10"/>',
+  recents:'<rect x="3" y="6" width="14" height="14" rx="2.5"/><path d="M8 3h11a2 2 0 0 1 2 2v11"/>',
+  shot:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.6"/>',
+  voldown:'<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 12h6"/>',
+  volup:'<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 12h6"/><path d="M19 9v6"/>',
+  mute:'<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l5 6M22 9l-5 6"/>',
+  notif:'<path d="M18 9a6 6 0 1 0-12 0c0 7-3 7-3 8h18c0-1-3-1-3-8"/><path d="M10 21a2 2 0 0 0 4 0"/>',
+  play:'<path d="M8 5.5v13l11-6.5z"/>',
+  pause:'<path d="M9 5v14M15 5v14"/>',
+  prev:'<path d="M5 5h2v14H5z"/><path d="M17 5l-8 7 8 7z"/>',
+  next:'<path d="M17 5h2v14h-2z"/><path d="M7 5l8 7-8 7z"/>',
+  pp:'<path d="M3 6v12l8-6z"/><path d="M15 6v12M20 6v12"/>'
+};
+const svg = (n) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${IC[n]}</svg>`;
+
+function renderChips(){
+  const e = eff();
+  $("chips").innerHTML = MODES.map(([m,n])=>`<div class="chip ${e===m?"on":""} ${norm(S.mode)===m?"auto":""}" data-k="mode:${m}">${n}</div>`).join("");
+}
+function renderBody(){
+  const b = $("body"), m = eff();
+  $("label").textContent = S.label === "桌面" ? "上屏：桌面" : S.label;
+  $("sub").textContent = "下屏 · " + MODES.find(x=>x[0]===m)[1];
+  if (m === "bar") {
+    const keys = [["back","返回","back"],["home","主页","home"],["recents","最近","recents"],["shot","截图","shot","hot"],
+      ["voldown","音量−","voldown"],["volup","音量+","volup"],["mute","静音","mute"],["notif","通知","notif"]];
+    const padHtml = S.access
+      ? `<div class="pad" id="pad"><div><b>触摸板</b><br>滑动＝移动光标<br>轻点＝点击<br>按住／双指轻点＝长按<br>双指滑动＝滚动</div></div>`
+      : `<div class="pad off"><div class="warn">触摸板需要开启“辅助功能”<br><small>设置 → 辅助功能 → Agent Deck · 下屏辅助</small></div></div>`;
+    b.innerHTML = `<div class="split"><div class="keys">` +
+      keys.map(([k,n,i,hot])=>`<div class="btn ${hot||""}" data-k="act:${k}">${svg(i)}<span>${n}</span></div>`).join("") +
+      `</div>${padHtml}</div>`;
+    if (S.access) bindPad();
+  } else if (m === "media") {   // 音乐、视频、桌面都用同一套转盘
+    b.innerHTML = `<div class="ipod">
+      <div class="lcd" ${S.mediaKind === "video" ? "" : 'data-k="player"'}>
+        <div class="bar"><span id="lcdApp">正在播放</span><span id="lcdClock"></span></div>
+        <div class="ttl" id="lcdTtl">${esc(S.mediaKind === "music" ? S.label : "音乐")}</div>
+        <div class="ar" id="lcdAr"></div>
+        <div class="st"><span id="lcdSt"></span><em id="lcdT"></em></div>
+        <div class="pb"><i id="lcdP"></i></div>
+        <div class="ly" id="lcdLy"></div>
+        <div class="gap"></div>
+        <div class="vl"><span>音量</span><span id="lcdVn"></span></div>
+        <div class="vb"><i id="lcdV"></i></div>
+        <div class="hint">${S.mediaKind === "video" ? "画圈调音量" : S.pkg === "player" ? "画圈调音量" : "点小屏：上屏打开播放页 · 画圈调音量"}</div>
+      </div>
+      <div class="wheel" id="wheel">
+        <div class="z t" data-z="t">MENU</div>
+        <div class="z l" data-z="l">${svg("prev")}</div>
+        <div class="z r" data-z="r">${svg("next")}</div>
+        <div class="z b" data-z="b">${svg("pp")}</div>
+        <div class="hub" data-z="c" id="hub"></div>
+      </div>
+    </div>`;
+    bindWheel(); NP.key = null; NP.sec = -1; syncPlay(); showVol();
+  } else if (m === "media") {
+    const music = S.mediaKind === "music";
+    const pl = music ? "上一首" : "上一个", nl = music ? "下一首" : "下一个";
+    b.innerHTML = `<div class="media">
+      <div class="mrow">
+        <div class="btn mside" data-k="act:prev">${svg("prev")}<span>${pl}</span></div>
+        <div class="mplay" id="mplay" data-k="act:playpause">${svg(playing?"pause":"play")}</div>
+        <div class="btn mside" data-k="act:next">${svg("next")}<span>${nl}</span></div>
+      </div>
+      <div class="mvol">
+        <div class="btn" data-k="act:voldown">${svg("voldown")}<span>音量−</span></div>
+        <div class="btn" data-k="act:volup">${svg("volup")}<span>音量+</span></div>
+      </div>
+    </div>`;
+  }
+}
+window.dl = {
+  state(s){ if (s.pkg !== S.pkg) manual = null; S = s; renderChips(); renderBody(); },
+  lyrics(id, lrc){ if (id !== NP.key) return; NP.lines = Lyric.parse(lrc).filter((l) => l.text); NP.cur = -2; lyTick(); }
+};
+
+// ---------- 播放状态：跟真实状态联动 ----------
+let holdUntil = 0;   // 刚点过播放键：给播放器 1.5 秒反应，期间不让轮询把乐观状态改回去
+function paintPlay(){
+  const ic = svg(playing ? "pause" : "play");
+  const mp = document.getElementById("mplay"); if (mp) mp.innerHTML = ic;
+  const hub = document.getElementById("hub"); if (hub) hub.innerHTML = ic;
+  const st = document.getElementById("lcdSt"); if (st) st.innerHTML = playing ? svg("play") + "播放中" : svg("pause") + "已暂停";
+}
+// 当前歌曲（来自后台播放器的媒体会话）：歌名 / 进度 / 当前这句歌词
+const NP = { key:null, lines:[], cur:-2, dur:0, sec:-1, clk: Lyric.clock() };
+function syncPlay(){
+  if (Date.now() > holdUntil) {
+    try {
+      const np = JSON.parse(H.nowPlaying());
+      playing = !!np.playing;
+      const t = document.getElementById("lcdTtl");
+      if (t) {
+        t.textContent = np.has ? (np.title || np.label || "未知歌曲") : (np.label || "没有播放器");
+        document.getElementById("lcdAr").textContent = np.has ? (np.artist || "") : "";
+        document.getElementById("lcdApp").textContent = np.has && np.label ? np.label : "正在播放";
+      }
+      if (np.has) {
+        NP.clk.feed(np); NP.dur = np.duration || 0; NP.line = np.line || "";
+        if (np.key !== NP.key) {
+          NP.key = np.key; NP.lines = []; NP.cur = -2;
+          const ly = document.getElementById("lcdLy"); if (ly) ly.textContent = "";
+          if (np.title) H.lyrics(np.key, np.title, np.artist || "", np.album || "", np.duration || 0);
+        }
+      } else { NP.key = null; NP.lines = []; NP.dur = 0; NP.line = ""; }
+    } catch(e) {}
+  }
+  paintPlay(); lyTick();
+  const c = document.getElementById("lcdClock");
+  if (c) { const d = new Date(); c.textContent = String(d.getHours()).padStart(2,"0") + ":" + String(d.getMinutes()).padStart(2,"0"); }
+  showVol();   // 侧面实体音量键调的也能看到
+}
+function lyTick(){
+  const pb = document.getElementById("lcdP"); if (!pb) return;
+  const ms = NP.clk.now(), sec = Math.floor(ms / 1000);
+  if (sec !== NP.sec) { NP.sec = sec;
+  pb.style.width = (NP.dur ? Math.min(100, ms / NP.dur * 100) : 0) + "%";
+  document.getElementById("lcdT").textContent = NP.dur ? Lyric.mmss(ms) + " / " + Lyric.mmss(NP.dur) : ""; }
+  if (!NP.lines.length) {          // 没有整篇时间轴歌词：显示 QQ 音乐"车载歌词"实时给的这句
+    const ly = document.getElementById("lcdLy"); if (ly.textContent !== (NP.line || "")) ly.textContent = NP.line || "";
+    return;
+  }
+  const i = Lyric.index(NP.lines, ms + 200);
+  if (i === NP.cur) return;
+  NP.cur = i;
+  document.getElementById("lcdLy").textContent = i >= 0 ? NP.lines[i].text : NP.lines[0].text;
+}
+setInterval(()=>{ if (eff() === "media" && document.getElementById("lcdLy")) lyTick(); }, 300);
+setInterval(()=>{ if (eff() === "media") syncPlay(); }, 1000);
+function togglePlay(){
+  playing = !playing; NP.clk.playing = playing; holdUntil = Date.now() + 1500; paintPlay();
+  H.act("playpause");
+}
+function showVol(){
+  const bar = document.getElementById("lcdV"); if (!bar) return;
+  try { const v = JSON.parse(H.volume()); bar.style.width = (v.max ? v.cur / v.max * 100 : 0) + "%"; document.getElementById("lcdVn").textContent = v.cur + " / " + v.max; }
+  catch(e) { console.error("volume: " + e); }
+}
+
+// ---------- iPod 式转盘：点四个方向 / 中心键，沿圈滑动调音量 ----------
+function bindWheel(){
+  const w = $("wheel"); let a0 = null, acc = 0, turned = false;
+  const geo = (e)=>{ const r = w.getBoundingClientRect(), cx = r.left + r.width/2, cy = r.top + r.height/2;
+    return { a: Math.atan2(e.clientY - cy, e.clientX - cx), d: Math.hypot(e.clientX - cx, e.clientY - cy) / (r.width/2) }; };
+  const zoneOf = (g)=> g.d < 0.4 ? "c" : (Math.abs(g.a) < Math.PI/4 ? "r" : Math.abs(g.a) > 3*Math.PI/4 ? "l" : g.a > 0 ? "b" : "t");
+  const lit = (z)=> w.querySelectorAll("[data-z]").forEach(x=>x.classList.toggle("on", x.dataset.z === z));
+  w.addEventListener("pointerdown", (e)=>{ w.setPointerCapture(e.pointerId); const g = geo(e); a0 = g.a; acc = 0; turned = false; lit(zoneOf(g)); });
+  w.addEventListener("pointermove", (e)=>{
+    if (a0 === null) return;
+    const g = geo(e); if (g.d < 0.4) return;
+    let da = g.a - a0; if (da > Math.PI) da -= 2*Math.PI; if (da < -Math.PI) da += 2*Math.PI;
+    a0 = g.a; acc += da;
+    const step = Math.PI / 7;   // 大约转 26° 调一格
+    while (Math.abs(acc) >= step) {
+      if (!turned) { turned = true; lit(null); w.classList.add("turn"); }
+      H.act(acc > 0 ? "volupq" : "voldownq"); acc -= Math.sign(acc) * step; showVol();
+    }
+  });
+  const end = (e)=>{
+    if (a0 === null) return; a0 = null; w.classList.remove("turn"); lit(null);
+    if (turned || e.type === "pointercancel") return;
+    const z = zoneOf(geo(e));
+    if (z === "c" || z === "b") togglePlay();
+    else if (z === "l") H.act("prev");
+    else if (z === "r") H.act("next");
+    else if (z === "t") { if (!H.act("back")) toast("需要开启“辅助功能”"); }
+  };
+  w.addEventListener("pointerup", end); w.addEventListener("pointercancel", end);
+}
+
+// ---------- 触摸板 ----------
+function bindPad(){
+  const pad = $("pad"), ptr = new Map(); let moved = 0, t0 = 0, scrollX = 0, scrollY = 0, two = false, hold = 0, longFired = false;
+  pad.addEventListener("pointerdown", (e)=>{
+    pad.setPointerCapture(e.pointerId); ptr.set(e.pointerId,[e.clientX,e.clientY]);
+    if(ptr.size===1){ moved=0; t0=Date.now(); scrollX=0; scrollY=0; two=false; longFired=false;
+      clearTimeout(hold);
+      hold = setTimeout(()=>{ if(ptr.size===1 && moved<10){ longFired=true; H.padTap(true); } }, 420);
+    }
+    if(ptr.size>=2){ two=true; clearTimeout(hold); }
+    pad.classList.add("live");
+  });
+  pad.addEventListener("pointermove", (e)=>{
+    const p = ptr.get(e.pointerId); if(!p) return;
+    const dx = e.clientX-p[0], dy = e.clientY-p[1]; ptr.set(e.pointerId,[e.clientX,e.clientY]);
+    moved += Math.abs(dx)+Math.abs(dy);
+    if(moved>10) clearTimeout(hold);
+    if(ptr.size>=2){ scrollX += dx/2; scrollY += dy/2; } else if(!two) H.padMove(dx,dy);
+  });
+  const up = (e)=>{
+    if(!ptr.has(e.pointerId)) return; ptr.delete(e.pointerId);
+    if(ptr.size===0){
+      pad.classList.remove("live"); clearTimeout(hold);
+      if(two){ if(Math.abs(scrollX)>6 || Math.abs(scrollY)>6) H.padScroll(scrollX, scrollY); else H.padTap(true); }
+      else if(!longFired && moved<10 && Date.now()-t0<350) H.padTap(false);
+    }
+  };
+  pad.addEventListener("pointerup",up); pad.addEventListener("pointercancel",up);
+}
+
+// ---------- 点击分发 ----------
+document.addEventListener("pointerdown", (e)=>{
+  const t = e.target.closest("[data-k]"); if(!t || t.id==="pad") return; t.classList.add("down");
+});
+document.addEventListener("pointerup", (e)=>{
+  document.querySelectorAll(".down").forEach(x=>x.classList.remove("down"));
+  const t = e.target.closest("[data-k]"); if(!t) return;
+  const k = t.dataset.k;
+  if(k.startsWith("mode:")){ const m = k.slice(5); manual = (m === norm(S.mode)) ? null : m; renderChips(); renderBody(); return; }
+  if(k === "player"){ H.openPlayer(); return; }
+  if(k === "act:playpause") togglePlay();
+  else if(k.startsWith("act:")){ if(!H.act(k.slice(4)) && ["back","home","recents","shot","notif"].includes(k.slice(4))) toast("需要开启“辅助功能”"); }
+});
+document.addEventListener("pointercancel", ()=>document.querySelectorAll(".down").forEach(x=>x.classList.remove("down")));
+renderChips(); renderBody(); H.ready();
+</script>
+</body></html>

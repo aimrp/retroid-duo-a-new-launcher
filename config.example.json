@@ -1,0 +1,12 @@
+{
+  "user_name": "",
+  "device_name": "",
+  "api_key": "",
+  "asr_model": "Qwen/Qwen3-ASR-1.7B",
+  "refine_model": "Qwen/Qwen3.5-9B",
+  "android_sdk": "",
+  "java_home": "",
+  "keystore": "",
+  "keystore_pass": "",
+  "keystore_alias": ""
+}

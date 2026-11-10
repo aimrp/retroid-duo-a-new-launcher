@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<style>
+/* Agent Deck · Platinum：老式 Macintosh 的铂金色菜单栏和窗口 + 写实图标。无常驻动画，省 CPU。 */
+:root{--plat:#e4e2dd;--plat-hi:#f7f6f3;--ink:#1d1c1a;--ink2:#625e57;--sel:#2c56c9;--paper:#f7f5f0}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
+html,body{margin:0;height:100%;overflow:hidden;color:var(--ink);font-family:"Noto Sans SC","Roboto",system-ui,sans-serif;touch-action:manipulation;
+ background:radial-gradient(ellipse 80% 70% at 28% 0%,rgba(255,234,210,.32),transparent 70%),linear-gradient(170deg,#5d708e 0%,#7e869a 48%,#ab9e91 100%)}
+#app{height:100%;display:flex;flex-direction:column}
+
+/* 菜单栏 */
+.menubar{flex:none;height:28px;display:flex;align-items:center;gap:10px;padding:0 10px;font-size:13px;position:relative;z-index:2;
+ background:linear-gradient(#fbfaf8,#e5e3de);border-bottom:1px solid #8f8b84;box-shadow:0 2px 6px rgba(0,0,0,.2)}
+.menubar .cat{width:20px;height:20px;border-radius:50%;object-fit:cover;flex:none;box-shadow:0 0 0 1px rgba(0,0,0,.22)}
+.menubar b{font-weight:700;letter-spacing:.2px}
+.menubar .hello{flex:1;min-width:0;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+ font-family:"Noto Serif SC","Noto Serif CJK SC","Source Han Serif SC",serif;transition:opacity .3s}
+.menubar .when{flex:none;font-variant-numeric:tabular-nums}
+.menubar .when span{color:var(--ink2);margin-right:8px}
+/* 电量：老 Mac 风格的小电池 */
+.batt{flex:none;display:flex;align-items:center;gap:5px;font-variant-numeric:tabular-nums}
+.batt .bcell{width:24px;height:12px;border:1.5px solid var(--ink);border-radius:3px;padding:1.5px;position:relative;display:block;flex:none}
+.batt .bcell::after{content:"";position:absolute;right:-4px;top:3px;width:2px;height:4px;background:var(--ink);border-radius:0 1px 1px 0}
+.batt .bcell i{display:block;height:100%;background:var(--ink);border-radius:1px}
+.batt.low{color:#c4331f}.batt.low .bcell{border-color:#c4331f}.batt.low .bcell::after,.batt.low .bcell i{background:#c4331f}
+.batt.chg .bcell i{background:#2f9e4a}
+.batt svg{width:10px;height:12px;margin-left:-2px}
+
+/* 窗口 */
+.win{flex:1;min-height:0;margin:10px 14px 12px;display:flex;flex-direction:column;border:1px solid #4d4a45;border-radius:7px 7px 5px 5px;overflow:hidden;
+ background:var(--plat);box-shadow:0 14px 34px rgba(20,24,36,.45),0 2px 6px rgba(0,0,0,.25)}
+.title{flex:none;height:24px;display:flex;align-items:center;gap:7px;padding:0 8px;
+ background:linear-gradient(var(--plat-hi),#dbd9d3);border-bottom:1px solid #8f8b84}
+.title .stripes{flex:1;height:11px;background:repeating-linear-gradient(180deg,#aaa69f 0 1px,#f8f7f4 1px 2px,transparent 2px 3px)}
+.title .box{flex:none;width:12px;height:12px;border:1px solid #57544f;border-radius:2px;background:linear-gradient(135deg,#fff,#c6c3bc);box-shadow:inset 1px 1px 0 #fff}
+.title .name{flex:none;font-size:13px;font-weight:700;padding:0 6px;letter-spacing:.3px}
+.content{flex:1;min-height:0;position:relative;background:var(--paper);box-shadow:inset 0 1px 3px rgba(0,0,0,.16)}
+#pages{position:absolute;inset:0;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none}
+#pages::-webkit-scrollbar{display:none}
+.page{flex:none;width:100%;height:100%;scroll-snap-align:start;display:grid;
+ grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:2px 8px;padding:10px 14px 6px}
+.cell{min-width:0;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px}
+.icon{height:min(124px,calc(100% - 26px));aspect-ratio:1;max-width:100%}
+.icon svg{width:100%;height:100%;display:block;overflow:visible}
+.cell span{max-width:100%;font-size:13px;line-height:18px;padding:0 6px;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cell.down .icon{filter:brightness(.6)}
+.cell.down span{background:var(--sel);color:#fff}
+
+/* 状态栏 */
+.status{flex:none;height:22px;display:flex;align-items:center;padding:0 10px;font-size:11.5px;color:var(--ink2);
+ background:linear-gradient(#efede9,#d8d5cf);border-top:1px solid #a9a59e}
+.status .l,.status .r{flex:1}
+.status .r{text-align:right}
+.dots{display:flex;gap:6px}
+.dots i{width:6px;height:6px;border-radius:3px;background:#aaa59d;transition:background .2s,width .2s}
+.dots i.on{background:#3b3935;width:16px}
+.empty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:var(--ink2);font-size:15px}
+</style></head>
+<body>
+<div id="app">
+  <div class="menubar">
+    <img class="cat" src="mochi.png" alt="">
+    <b id="devname">Agent Deck</b>
+    <span class="hello" id="hello">你好</span>
+    <span class="when"><span id="date">--</span><b id="clock">--:--</b></span>
+    <span class="batt" id="batt"></span>
+  </div>
+  <div class="win">
+    <div class="title"><i class="box"></i><i class="stripes"></i><span class="name">应用程序</span><i class="stripes"></i><i class="box"></i></div>
+    <div class="content"><div id="pages"></div></div>
+    <div class="status"><span class="l" id="count"></span><div class="dots" id="dots"></div><span class="r">左右滑动翻页</span></div>
+  </div>
+</div>
+<script src="icons.js"></script>
+<script>
+const H = window.DuoHome, $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+// 菜单栏时钟（分钟精度，5 秒刷一次就够）
+function tick(){
+  const d = new Date(), p = (n) => String(n).padStart(2,"0");
+  $("clock").textContent = p(d.getHours()) + ":" + p(d.getMinutes());
+  $("date").textContent = (d.getMonth()+1) + "月" + d.getDate() + "日 周" + ["日","一","二","三","四","五","六"][d.getDay()];
+}
+// 电量（桌面藏了系统状态栏）
+function battery(){
+  let b; try { b = JSON.parse(H.battery()); } catch(e) { return; }
+  const el = $("batt"); if (!el || b.level == null || b.level < 0) return;
+  el.className = "batt" + (b.charging ? " chg" : b.level <= 20 ? " low" : "");
+  el.innerHTML = `<span class="bcell"><i style="width:${b.level}%"></i></span>` +
+    (b.charging ? `<svg viewBox="0 0 10 12"><path d="M6 0 1 7h3l-1 5 5-7H5z" fill="#2f9e4a"/></svg>` : "") + b.level + "%";
+}
+tick(); setInterval(tick, 5000);
+battery(); setInterval(battery, 30000);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) { tick(); battery(); } });
+
+// 欢迎语：时段问候 + 一句随机的话
+const HELLOS = [
+  "山高路远，看世界也找自己", "且将新火试新茶，诗酒趁年华", "云程发轫，万里可期", "星光不问赶路人",
+  "山水万程，皆有好运", "心之所向，行之所往", "慢慢来，比较快", "行到水穷处，坐看云起时",
+  "平芜尽处是春山", "愿你历尽千帆，归来仍是少年", "生活明朗，万物可爱", "来日方长，细水长流",
+  "所行皆坦途，所愿皆可期", "且行且看，且听风吟"
+];
+let lastHello = -1;
+// 称呼：打包时在 config.local.json 里填 user_name；没填就只说“下午好”
+const USER = (() => { try { return (window.DuoHome && DuoHome.userName()) || ""; } catch (e) { return ""; } })();
+// 设备名：左上角显示的这台设备叫什么，打包时在 config.local.json 里填 device_name；没填就保持默认的 Agent Deck
+const DEVICE = (() => { try { return (window.DuoHome && DuoHome.deviceName()) || ""; } catch (e) { return ""; } })();
+if (DEVICE) document.getElementById("devname").textContent = DEVICE;
+function greet(){
+  const h = new Date().getHours();
+  if (h >= 5 && h < 11) return "早上好";
+  if (h >= 11 && h < 13) return "中午好";
+  if (h >= 13 && h < 18) return "下午好";
+  if (h >= 18 && h < 23) return "晚上好";
+  return "晚安";
+}
+function hello(){
+  let i; do { i = Math.floor(Math.random()*HELLOS.length); } while (i===lastHello && HELLOS.length>1);
+  lastHello = i;
+  const el = $("hello");
+  el.style.opacity = 0;
+  setTimeout(()=>{ el.textContent = (USER ? USER + "，" : "") + greet() + "。" + HELLOS[i]; el.style.opacity = 1; }, 300);
+}
+hello(); setInterval(hello, 30000);
+
+// 常用 App 图标库：包名 → 图标名。精确匹配优先，再按包名前缀、应用名关键字兜底，换壳包/极速版也能对上。
+const CUSTOM = {
+  "com.android.settings": "settings", "com.android.deskclock": "clock", "com.android.calendar": "calendar",
+  "com.android.gallery3d": "gallery", "com.android.music": "music", "com.android.soundrecorder": "recorder",
+  "com.android.documentsui": "files", "com.android.vending": "store", "com.android.chrome": "chrome",
+  "tv.danmaku.bili": "bili", "com.follow.clash": "clash", "com.openai.chatgpt": "chatgpt",
+  "com.tencent.qqmusic": "qqmusic", "youqu.android.todesk": "todesk", "com.luna.music": "qqmusic",
+  "tech.foursee.stophero": "npc",
+  "com.tencent.mm": "wechat", "com.tencent.mobileqq": "qq", "com.qiyi.video": "iqiyi",
+  "com.tencent.qqlive": "tencentvideo", "com.youku.phone": "youku", "com.ss.android.ugc.aweme": "douyin",
+  "com.smile.gifmaker": "kuaishou", "com.netease.cloudmusic": "netease", "com.taobao.taobao": "taobao",
+  "com.jingdong.app.mall": "jd", "com.eg.android.AlipayGphone": "alipay", "com.sankuai.meituan": "meituan",
+  "com.sina.weibo": "weibo", "com.xunmeng.pinduoduo": "pdd", "com.xingin.xhs": "xhs",
+  "com.autonavi.minimap": "amap", "com.baidu.BaiduMap": "baidumap", "me.ele": "eleme",
+  "com.whatsapp": "whatsapp", "org.telegram.messenger": "telegram", "com.spotify.music": "spotify",
+  "com.google.android.youtube": "youtube", "com.netflix.mediaclient": "netflix", "com.discord": "discord",
+  "com.instagram.android": "instagram"
+};
+
+// 包名前缀（同一家的变体：极速版 / 平板版 / 海外版等）
+const PKG_PREFIX = [
+  ["com.tencent.mm", "wechat"], ["com.tencent.mobileqq", "qq"], ["com.qiyi.video", "iqiyi"],
+  ["com.tencent.qqlive", "tencentvideo"], ["com.youku", "youku"], ["com.ss.android.ugc.aweme", "douyin"],
+  ["com.smile.gifmaker", "kuaishou"], ["com.netease.cloudmusic", "netease"], ["com.taobao", "taobao"],
+  ["com.jingdong", "jd"], ["com.eg.android.AlipayGphone", "alipay"], ["com.sankuai.meituan", "meituan"],
+  ["com.sina.weibo", "weibo"], ["com.xunmeng.pinduoduo", "pdd"], ["com.xingin.xhs", "xhs"],
+  ["com.autonavi", "amap"], ["com.baidu.BaiduMap", "baidumap"], ["me.ele", "eleme"],
+  ["com.whatsapp", "whatsapp"], ["org.telegram", "telegram"], ["com.spotify", "spotify"],
+  ["com.google.android.youtube", "youtube"], ["com.netflix", "netflix"], ["com.discord", "discord"],
+  ["com.instagram", "instagram"]
+];
+
+// 应用名关键字（包名都没对上时按名字猜）
+const LABEL_HINT = [
+  ["微信", "wechat"], ["wechat", "wechat"], ["weixin", "wechat"],
+  ["qq音乐", "qqmusic"], ["qq", "qq"],
+  ["爱奇艺", "iqiyi"], ["iqiyi", "iqiyi"],
+  ["腾讯视频", "tencentvideo"], ["优酷", "youku"], ["youku", "youku"],
+  ["抖音", "douyin"], ["tiktok", "douyin"], ["快手", "kuaishou"],
+  ["网易云", "netease"], ["淘宝", "taobao"], ["京东", "jd"], ["支付宝", "alipay"],
+  ["美团", "meituan"], ["微博", "weibo"], ["拼多多", "pdd"], ["小红书", "xhs"],
+  ["高德", "amap"], ["百度地图", "baidumap"], ["饿了么", "eleme"],
+  ["whatsapp", "whatsapp"], ["telegram", "telegram"], ["spotify", "spotify"],
+  ["youtube", "youtube"], ["netflix", "netflix"], ["discord", "discord"], ["instagram", "instagram"]
+];
+
+// 拿一个应用对应的图标名：先精确包名，再包名前缀，最后按名字猜；都没有就返回空串走底板兜底。
+function iconFor(pkg, label) {
+  if (CUSTOM[pkg]) return CUSTOM[pkg];
+  for (const [pre, icon] of PKG_PREFIX) if (pkg.startsWith(pre)) return icon;
+  const L = String(label || "").toLowerCase();
+  for (const [key, icon] of LABEL_HINT) if (L.indexOf(key.toLowerCase()) !== -1) return icon;
+  return "";
+}
+
+// 一页 10 个：5 列 × 2 行，只横滑
+function layout(apps){
+  const pages = $("pages"), per = 10;
+  const n = Math.max(1, Math.ceil(apps.length / per));
+  const cells = [];
+  for (let i = 0; i < per * n; i++) {
+    const a = apps[i];
+    cells.push(a
+      ? `<div class="cell" data-pkg="${esc(a.pkg)}"><div class="icon" data-ic="${i}"></div><span>${esc(a.label)}</span></div>`
+      : `<div class="cell"></div>`);
+  }
+  let html = "";
+  for (let p = 0; p < n; p++) html += `<div class="page">` + cells.slice(p * per, (p + 1) * per).join("") + `</div>`;
+  pages.innerHTML = html;
+  $("count").textContent = apps.length + " 个项目";
+  $("dots").innerHTML = n > 1 ? Array.from({length:n}, (_,i)=>`<i class="${i===0?"on":""}"></i>`).join("") : "";
+  apps.forEach((a,i) => {
+    const box = pages.querySelector(`[data-ic="${i}"]`);
+    if (!box) return;
+    box.innerHTML = (function(){ const n = iconFor(a.pkg, a.label); return n && DeckIcons.has(n) ? DeckIcons.svg(n) : DeckIcons.tile(H.icon(a.pkg)); })();
+  });
+}
+
+let dotsBound = false;
+function bindDots(){
+  if (dotsBound) return; dotsBound = true;
+  const pages = $("pages");
+  pages.addEventListener("scroll", () => {
+    const idx = Math.round(pages.scrollLeft / pages.clientWidth);
+    document.querySelectorAll("#dots i").forEach((d,i)=>d.classList.toggle("on", i===idx));
+  }, {passive:true});
+}
+
+function render(){
+  let apps;
+  try { apps = JSON.parse(H.apps()); } catch(e) { apps = []; }
+  if (!apps.length) { $("pages").innerHTML = `<div class="empty">没有找到可显示的应用</div>`; $("dots").innerHTML=""; return; }
+  layout(apps); bindDots();
+}
+
+// 点击：按下时图标变暗、名字反白（老 Mac 的选中样子）
+document.addEventListener("pointerdown", (e)=>{
+  const t = e.target.closest(".cell"); if(t && t.dataset.pkg) t.classList.add("down");
+});
+document.addEventListener("pointerup", (e)=>{
+  document.querySelectorAll(".down").forEach(x=>x.classList.remove("down"));
+  const c = e.target.closest(".cell");
+  if(c && c.dataset.pkg){ H.launch(c.dataset.pkg); return; }
+});
+document.addEventListener("pointercancel", ()=>document.querySelectorAll(".down").forEach(x=>x.classList.remove("down")));
+
+DeckIcons.mount(); render(); H.ready();
+</script>
+</body></html>

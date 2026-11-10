@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="tech.foursee.duoime"
+    android:versionCode="5" android:versionName="1.4.0">
+  <uses-sdk android:minSdkVersion="29" android:targetSdkVersion="35"/>
+  <uses-permission android:name="android.permission.INTERNET"/>
+  <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+  <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/>
+  <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
+  <queries>
+    <intent><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.LAUNCHER"/></intent>
+    <intent><action android:name="android.intent.action.MAIN"/><category android:name="android.intent.category.HOME"/></intent>
+  </queries>
+  <application android:label="Agent Deck" android:icon="@drawable/ic_app" android:theme="@android:style/Theme.DeviceDefault">
+    <service android:name=".DuoIme" android:exported="true" android:label="Agent Deck"
+        android:permission="android.permission.BIND_INPUT_METHOD">
+      <intent-filter><action android:name="android.view.InputMethod"/></intent-filter>
+      <meta-data android:name="android.view.im" android:resource="@xml/method"/>
+    </service>
+    <service android:name=".DuoNotify" android:exported="true" android:label="Agent Deck · 媒体控制"
+        android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+      <intent-filter><action android:name="android.service.notification.NotificationListenerService"/></intent-filter>
+    </service>
+    <service android:name=".DuoAccess" android:exported="true" android:label="Agent Deck · 下屏辅助"
+        android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+      <intent-filter><action android:name="android.accessibilityservice.AccessibilityService"/></intent-filter>
+      <meta-data android:name="android.accessibilityservice" android:resource="@xml/access"/>
+    </service>
+    <activity android:name=".HomeActivity" android:exported="true" android:label="Agent Deck"
+        android:launchMode="singleTask" android:excludeFromRecents="true" android:stateNotNeeded="true"
+        android:resizeableActivity="true" android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen"
+        android:configChanges="orientation|screenSize|screenLayout|keyboard|keyboardHidden|navigation|smallestScreenSize|density|uiMode">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.HOME"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+      </intent-filter>
+    </activity>
+    <activity android:name=".PlayerActivity" android:exported="false" android:label="正在播放"
+        android:launchMode="singleTask" android:taskAffinity="tech.foursee.duoime.player" android:excludeFromRecents="true"
+        android:resizeableActivity="true" android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen"
+        android:configChanges="orientation|screenSize|screenLayout|keyboard|keyboardHidden|navigation|smallestScreenSize|density|uiMode"/>
+    <activity android:name=".LauncherActivity" android:exported="true" android:label="下屏桌面"
+        android:launchMode="singleTask" android:taskAffinity="tech.foursee.duoime.bottom" android:excludeFromRecents="true"
+        android:resizeableActivity="true" android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen"
+        android:configChanges="orientation|screenSize|screenLayout|keyboard|keyboardHidden|navigation|smallestScreenSize|density|uiMode">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+        <category android:name="android.intent.category.SECONDARY_HOME"/>
+        <category android:name="android.intent.category.DEFAULT"/>
+      </intent-filter>
+    </activity>
+    <activity android:name=".SettingsActivity" android:exported="true" android:label="Agent Deck 设置">
+      <intent-filter>
+        <action android:name="android.intent.action.MAIN"/>
+      </intent-filter>
+    </activity>
+  </application>
+</manifest>

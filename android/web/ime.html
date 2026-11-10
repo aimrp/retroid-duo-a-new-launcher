@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no">
+<link rel="stylesheet" href="keyboard.css">
+<style>html,body{margin:0;height:100%;background:#d3d0c9;overflow:hidden}#kb{width:100vw;height:100vh}#kb.dk{width:100vw;height:100vh}</style>
+</head><body><div id="kb"></div>
+<script src="dict.js"></script>
+<script src="engine.js"></script>
+<script src="voice-siliconflow.js"></script>
+<script src="keyboard.js"></script>
+<script>
+// Glue between the keyboard and the Android input method service (window.DuoHost is injected by DuoIme.java)
+const H = window.DuoHost;
+const store = { load: () => JSON.parse(H.loadUser() || "null"), save: (o) => H.saveUser(JSON.stringify(o)) };
+const engine = new PinyinEngine(window.PINYIN_DICT, store);
+const host = {
+  commit: (t) => H.commit(t),
+  backspace: () => H.backspace(),
+  enter: () => H.enter(),
+  composing: (pre, c) => H.composing(pre || "", JSON.stringify((c || []).filter((x) => !x.raw).slice(0, 6).map((x) => x.text))),
+};
+const kb = new DuoKeyboard(document.getElementById("kb"), { engine, host, voice: null });
+kb.setTheme("platinum");
+function configure(cfg) {
+  if (cfg.key) {
+    if (!kb.voice) kb.voice = new SiliconFlowVoice({});
+    kb.voice.configure({ key: cfg.key, asrModel: cfg.asrModel || "Qwen/Qwen3-ASR-1.7B", refineModel: cfg.refineModel ?? "Qwen/Qwen3.5-9B" });
+  } else kb.voice = null;
+}
+// called by the service
+window.duo = {
+  start(o) {
+    configure(o);
+    if (o.clearUser) engine.clearUser();
+    kb.setEnterLabel(o.enter || "换行");
+    kb.reset();
+  },
+  reset() { kb.reset(); },
+  stats() { return JSON.stringify(engine.userStats()); },
+};
+configure(JSON.parse(H.getConfig()));
+H.ready();
+</script>
+</body></html>

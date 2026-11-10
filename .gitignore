@@ -1,0 +1,24 @@
+.venv/
+__pycache__/
+simulator/secrets.local.js
+simulator/*.png
+tools/asr-test/
+android/build/
+android/debug.keystore
+tools/toolchain
+third_party/rime-ice/base.dict.yaml
+third_party/rime-ice/ext.dict.yaml
+
+# 调试截图
+/*.png
+
+# 图标生成脚本（含密钥，勿提交）
+icon-gen/
+
+# 调试截图目录
+/shots/
+
+# 个人配置：称呼、API Key、签名证书路径（打包时才用，绝不入库）
+config.local.json
+*.keystore
+*.jks

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8"><title>STOP · The Stompers · 双屏开发预览</title>
+<style>
+body{margin:0;background:#0d0b18;color:#cfe8ff;font:14px/1.5 "Microsoft YaHei",sans-serif;display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px}
+.dev{display:flex;flex-direction:column;align-items:center;gap:6px;background:#1a1426;padding:14px 18px;border-radius:18px;box-shadow:0 0 0 3px #2c2447}
+iframe{border:0;display:block;background:#000}
+#top{width:768px;height:432px} #bot{width:512px;height:384px}
+.keys{opacity:.7;font-size:12px;max-width:780px;text-align:center}
+</style></head><body>
+<div class="dev">
+  <iframe id="top"></iframe>
+  <iframe id="bot" src="bottom.html"></iframe>
+</div>
+<div class="keys">键盘：方向键/WASD 移动 · L(或空格)=A 跳 · K=B 冲撞 · I=X 甩壳 · J=Y 召唤 · 回车=START · Shift=SELECT · 也支持插手柄（标准布局）</div>
+<script>
+const top1 = document.getElementById('top');
+// 电脑预览默认静音；加 ?sound=1 打开声音。?demo=45 自动演示
+const q = new URLSearchParams(location.search); if (!q.has('sound')) q.set('mute', '1');
+top1.src = 'top.html?' + q.toString();
+function fwd(code, down){ top1.contentWindow.postMessage({ sh:'key', code, down }, '*'); }
+['keydown','keyup'].forEach(t => addEventListener(t, e => { fwd(e.code, t==='keydown'); if (e.code.startsWith('Arrow')||e.code==='Space') e.preventDefault(); }));
+addEventListener('message', e => { if (e.data && e.data.sh === 'key' && e.source !== top1.contentWindow) fwd(e.data.code, e.data.down); });
+</script>
+</body></html>

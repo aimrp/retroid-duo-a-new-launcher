@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<title>下屏键盘 · 双屏模拟器</title>
+<link rel="stylesheet" href="../keyboard/keyboard.css">
+<style>
+:root{--page:#1a1d23}
+html,body{margin:0;background:var(--page);color:#dfe4ec;font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif}
+.wrap{display:flex;gap:28px;padding:22px;align-items:flex-start}
+.device{background:#2b2f37;border-radius:26px;padding:18px 18px 22px;box-shadow:0 10px 40px rgba(0,0,0,.5);display:flex;flex-direction:column;align-items:center;gap:0;flex:none}
+.lid{background:#111;border-radius:14px;padding:12px}
+.hinge{width:70%;height:16px;background:linear-gradient(#1c1f25,#3a3f49);border-radius:0 0 10px 10px;margin-bottom:14px}
+.base{background:#111;border-radius:12px;padding:10px;display:flex;align-items:center;gap:22px}
+.pad{width:70px;display:flex;flex-direction:column;align-items:center;gap:10px;color:#555;font-size:11px}
+.pad i{width:46px;height:46px;border-radius:50%;background:#1d2027;display:block}
+.screen-label{font-size:11px;color:#6f7786;margin:6px 0 2px;align-self:flex-start;padding-left:4px}
+
+/* top screen: sample app */
+.top{width:833px;height:469px;background:#fff;color:#1b2230;position:relative;overflow:hidden;display:flex;flex-direction:column}
+.bar{height:22px;font-size:11px;display:flex;justify-content:space-between;padding:4px 12px;color:#666}
+.search{display:flex;align-items:center;gap:10px;padding:8px 16px}
+.search .back{font-size:22px;color:#888}
+.box{flex:1;height:38px;border:1.5px solid #fb7299;border-radius:19px;display:flex;align-items:center;padding:0 16px;font-size:17px;gap:8px}
+.box .q{color:#999}
+.box .txt{white-space:pre;overflow:hidden}
+.box .caret{width:2px;height:20px;background:#fb7299;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.search .go{color:#fb7299;font-size:16px}
+.results{flex:1;padding:6px 18px;overflow:auto;font-size:15px;line-height:2.1;color:#333}
+.results .hint{color:#aaa}
+.results .hit{color:#fb7299}
+.strip{height:34px;flex:none;background:#161c26;color:#c3cad8;display:flex;align-items:center;gap:14px;padding:0 14px;font-size:14px}
+.strip .pre{color:#5aa9ff}
+.strip .c{color:#fff}
+.strip .c:first-of-type{color:#ffb547}
+
+/* side panel */
+.side{width:300px;flex:none;font-size:13.5px;line-height:1.7}
+.side h1{font-size:18px;margin:0 0 4px}
+.side .sub{color:#8b95a8;margin-bottom:16px}
+.side fieldset{border:1px solid #333a46;border-radius:10px;padding:10px 14px;margin:0 0 12px}
+.side legend{color:#8b95a8;padding:0 4px;font-size:12px}
+.side label{display:block;cursor:pointer}
+.side .log{background:#111418;border-radius:8px;padding:8px 10px;font-family:Consolas,monospace;font-size:12px;height:150px;overflow:auto;color:#9aa3b8}
+.side .note{color:#8b95a8;font-size:12.5px}
+kbd{background:#2b3038;border-radius:4px;padding:0 5px;font-size:12px}
+</style></head>
+<body>
+<div class="wrap">
+  <div class="device" id="device">
+    <div class="screen-label">上屏 · 示例应用（833×469 CSS，实机 1920×1080）</div>
+    <div class="lid"><div class="top">
+      <div class="bar"><span>下午 6:30</span><span>Wi‑Fi · 96%</span></div>
+      <div class="search"><span class="back">‹</span>
+        <div class="box"><span class="q">🔍</span><span class="txt" id="txt"></span><span class="caret"></span></div>
+        <span class="go" id="go">搜索</span></div>
+      <div class="results" id="results"><div class="hint">点下屏键盘打字，或者直接用电脑键盘输入。<br>输入法在这块屏只留底部一条提示/编码条，键盘全部在下屏。</div></div>
+      <div class="strip" id="strip"></div>
+    </div></div>
+    <div class="hinge"></div>
+    <div class="screen-label">下屏 · 键盘（640×480 CSS，实机 1280×960）</div>
+    <div class="base">
+      <div class="pad"><i></i>十字键</div>
+      <div id="kb"></div>
+      <div class="pad"><i></i>ABXY</div>
+    </div>
+  </div>
+
+  <div class="side">
+    <h1>下屏键盘 · 模拟器</h1>
+    <div class="sub">确认样式用。界面代码和正式版是同一份，拼音引擎是模拟小词库（正式版换 librime）。</div>
+    <fieldset><legend>主题</legend>
+      <label><input type="radio" name="theme" value="neo"> 科技（光效 · 推荐）</label>
+      <label><input type="radio" name="theme" value="dark"> 深色（与 Deck 一致）</label>
+      <label><input type="radio" name="theme" value="light"> 浅色</label>
+    </fieldset>
+    <fieldset><legend>语音输入（硅基流动云端）</legend>
+      <label style="cursor:default">API Key <input id="vkey" type="password" style="width:100%;box-sizing:border-box;background:#111418;border:1px solid #333a46;color:#dfe4ec;border-radius:6px;padding:4px 6px;margin:2px 0 6px"></label>
+      <label style="cursor:default">识别模型
+        <select id="vasr" style="width:100%;background:#111418;color:#dfe4ec;border:1px solid #333a46;border-radius:6px;padding:3px;margin:2px 0 6px">
+          <option value="Qwen/Qwen3-ASR-1.7B">Qwen3-ASR-1.7B（最快 · 推荐）</option>
+          <option value="FunAudioLLM/SenseVoiceSmall">SenseVoiceSmall</option>
+          <option value="XingChenAGI/XingChenASR-V3.2">星辰 ASR V3.2</option>
+          <option value="XingChenAGI/XingChenASR-V3.2-Ultra">星辰 ASR V3.2 Ultra（慢）</option>
+        </select></label>
+      <div class="note">用法：点键盘上的“🎙 语音”，或者用鼠标按住空格说话、松开发送。第一次会弹出麦克风授权。</div>
+    </fieldset>
+    <fieldset><legend>词库与学习</legend>
+      <div class="note">基础词库：雾凇拼音（rime-ice，GPL-3.0）约 20 万词。你选过的词会排到前面，分几次选出的句子会自动记成新词，长按候选可以删掉学习记录。</div>
+      <div style="margin-top:6px">已学习 <b id="ucount">0</b> 个词 <button id="uclear" style="margin-left:8px;background:#2b3038;color:#dfe4ec;border:1px solid #444b57;border-radius:6px;padding:2px 10px;cursor:pointer">清除</button></div>
+    </fieldset>
+    <fieldset><legend>按键字号</legend>
+      <label><input type="radio" name="size" value="normal"> 标准</label>
+      <label><input type="radio" name="size" value="large"> 大</label>
+    </fieldset>
+    <fieldset><legend>上屏提示条</legend>
+      <label><input type="radio" name="strip" value="mirror"> 同步显示拼音和候选</label>
+      <label><input type="radio" name="strip" value="hint"> 只显示“键盘在下屏”</label>
+      <label><input type="radio" name="strip" value="none"> 不占上屏</label>
+    </fieldset>
+    <fieldset><legend>回车键（由应用决定）</legend>
+      <label><input type="radio" name="enter" value="搜索"> 搜索</label>
+      <label><input type="radio" name="enter" value="发送"> 发送</label>
+      <label><input type="radio" name="enter" value="换行"> 换行</label>
+    </fieldset>
+    <fieldset><legend>缩放</legend>
+      <label><input type="radio" name="zoom" value="0.8"> 80%</label>
+      <label><input type="radio" name="zoom" value="1"> 100%（CSS 原尺寸）</label>
+    </fieldset>
+    <div class="note">电脑键盘：字母打拼音，<kbd>空格</kbd> 选第一个，<kbd>1</kbd>–<kbd>9</kbd> 选候选，单按 <kbd>Shift</kbd> 中/英切换，<kbd>'</kbd> 分隔音节，标点自动转中文标点。<br>下屏：按住 ⌫ 连删，候选栏 ▼ 展开全部候选，“符号”里有中英文标点。</div>
+    <div style="margin-top:10px;color:#8b95a8;font-size:12px">事件</div>
+    <div class="log" id="log"></div>
+  </div>
+</div>
+
+<script src="../keyboard/dict.js"></script>
+<script src="../keyboard/engine.js"></script>
+<script src="../keyboard/voice-siliconflow.js"></script>
+<script src="secrets.local.js"></script>
+<script src="../keyboard/keyboard.js"></script>
+<script>
+const $ = (id) => document.getElementById(id);
+const S = Object.assign({ theme: "neo", size: "normal", strip: "mirror", enter: "搜索", zoom: "1" },
+  JSON.parse(localStorage.getItem("duo-ime-sim2") || "{}"));
+let text = "";
+const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
+function log(m) { const l = $("log"); l.textContent = new Date().toTimeString().slice(0, 8) + " " + m + "\n" + l.textContent; }
+function showText() { $("txt").textContent = text; }
+let comp = { pre: "", cands: [] };
+function showStrip() {
+  const el = $("strip");
+  el.style.display = S.strip === "none" ? "none" : "flex";
+  if (S.strip === "mirror" && comp.pre)
+    el.innerHTML = `<span class="pre">${esc(comp.pre)}</span>` + comp.cands.slice(0, 6).filter((c) => !c.raw).map((c, i) => `<span class="c">${i + 1}.${esc(c.text)}</span>`).join("");
+  else el.innerHTML = "⌨ 键盘在下屏";
+}
+
+// The simulator's host = the top-screen app. In production this becomes InputConnection (commitText / deleteSurroundingText / performEditorAction).
+const host = {
+  commit(t) { text += t; showText(); log("commit " + JSON.stringify(t)); },
+  backspace() { text = [...text].slice(0, -1).join(""); showText(); log("backspace"); },
+  enter() {
+    log("enter (" + S.enter + ")");
+    if (S.enter === "换行") { text += "\n"; return showText(); }
+    $("results").innerHTML = `<div>${S.enter === "搜索" ? "搜索" : "已发送"}：<span class="hit">${esc(text) || "（空）"}</span></div>` + $("results").innerHTML;
+    if (S.enter === "发送") { text = ""; showText(); }
+  },
+  composing(pre, cands) { comp = { pre, cands }; showStrip(); },
+};
+
+const V = Object.assign({ key: (window.DUO_IME_SECRETS || {}).siliconflowKey || "", asrModel: "Qwen/Qwen3-ASR-1.7B" },
+  JSON.parse(localStorage.getItem("duo-ime-voice") || "{}"));
+const voice = new SiliconFlowVoice(V);
+const origStop = voice.stop.bind(voice);
+voice.stop = async (onStage) => { const t0 = Date.now(); const t = await origStop(onStage); log(`voice ${V.asrModel.split("/")[1]} ${Date.now() - t0}ms`); return t; };
+function applyVoice() {
+  $("vkey").value = V.key; $("vasr").value = V.asrModel;
+  voice.configure(V); localStorage.setItem("duo-ime-voice", JSON.stringify(V));
+}
+$("vkey").addEventListener("change", (e) => { V.key = e.target.value.trim(); applyVoice(); });
+$("vasr").addEventListener("change", (e) => { V.asrModel = e.target.value; applyVoice(); });
+applyVoice();
+const userStore = {
+  load: () => JSON.parse(localStorage.getItem("duo-ime-user") || "null"),
+  save: (o) => { localStorage.setItem("duo-ime-user", JSON.stringify(o)); showUser(); },
+};
+const engine = new PinyinEngine(window.PINYIN_DICT, userStore);
+function showUser() { $("ucount").textContent = engine.userStats().words; }
+$("uclear").addEventListener("click", () => { if (confirm("清除所有学习记录？")) { engine.clearUser(); setTimeout(showUser, 50); } });
+showUser();
+const kb = new DuoKeyboard($("kb"), { engine, host, voice });
+
+function apply() {
+  kb.setTheme(S.theme); kb.setSize(S.size); kb.setEnterLabel(S.enter);
+  $("go").textContent = S.enter === "搜索" ? "搜索" : "";
+  $("device").style.zoom = S.zoom;
+  showStrip();
+  localStorage.setItem("duo-ime-sim2", JSON.stringify(S));
+  for (const k of Object.keys(S)) document.querySelectorAll(`input[name=${k}]`).forEach((i) => (i.checked = i.value === S[k]));
+}
+document.querySelectorAll(".side input[type=radio]").forEach((i) => i.addEventListener("change", () => { S[i.name] = i.value; apply(); }));
+document.addEventListener("keydown", (e) => { if (kb.handleKeyEvent(e)) e.preventDefault(); });
+document.addEventListener("keyup", (e) => { if (kb.handleKeyUp(e)) e.preventDefault(); });
+apply(); showText();
+// Screenshot/demo: index.html#type=nihao,space,jintiantianqihenhao&theme=light  (comma-separated key names, letters can be strung together)
+const NAMES = new Set(["voice", "space", "enter", "bksp", "shift", "lang", "sym", "abc", "more", "sep", "tab-zh", "tab-en"]);
+const hp = new URLSearchParams(location.hash.slice(1));
+if (hp.get("theme")) { S.theme = hp.get("theme"); apply(); }
+for (const tok of (hp.get("type") || "").split(",").filter(Boolean))
+  (NAMES.has(tok) || tok.includes(":") ? [tok] : [...tok].map((c) => (c === "'" ? "sep" : c))).forEach((k) => kb.press(k));
+</script>
+</body></html>
