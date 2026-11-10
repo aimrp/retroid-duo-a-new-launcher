@@ -207,17 +207,18 @@
 
   function drawResult() {
     const r = V.result || {}, g = V.g || {};
-    txt(r.win ? '守住了！' : '防线失守 · 公主被救走了', W / 2, 26, 12, r.win ? '#ffe066' : '#ff8a8a', 'center');
-    frame(20, 44, 216, 70, '#2c2447');
+    const held = r.held != null ? r.held : 0;
+    txt('防线失守 · 公主被带走了', W / 2, 26, 12, '#ff8a8a', 'center');
+    frame(20, 44, 216, 56, '#2c2447');
     const st = r.stats || { stomps: 0, heroHits: 0 };
-    txt(`用时 ${r.secs || 0} 秒`, 34, 58, 7, '#ffffff', 'left', 700);
-    txt(`剩余 ${r.hp || 0} 颗心`, 34, 74, 7, '#ffffff', 'left', 700);
+    txt(`这一局 ${r.runSecs || 0} 秒`, 34, 58, 7, '#ffffff', 'left', 700);
+    txt(`三道防线守住了 ${held} 道`, 34, 74, 7, '#ffffff', 'left', 700);
     txt(`被踩 ${st.stomps} 次`, 140, 58, 7, '#ffffff', 'left', 700);
     txt(`打中勇者 ${st.heroHits} 次`, 140, 74, 7, '#ffffff', 'left', 700);
-    const stars = r.win ? (r.hp >= 4 ? 3 : r.hp >= 2 ? 2 : 1) : 0;
-    txt('★'.repeat(stars) + '☆'.repeat(3 - stars), W / 2, 98, 12, '#ffe066', 'center');
-    frame(20, 124, 104, 26, '#3b2f63', '#ffe066'); txt('A 重守这一关', 72, 137, 8, '#ffe066', 'center'); hot('retry', 20, 124, 104, 26);
-    frame(132, 124, 104, 26, '#2c2447'); txt('B 回到标题', 184, 137, 8, '#ffffff', 'center'); hot('title', 132, 124, 104, 26);
+    dots(W / 2, 116, 3);
+    txt('三关必须全部守住，公主才救得回来。', W / 2, 140, 6.5, '#cfe8ff', 'center', 700);
+    frame(20, 152, 104, 26, '#3b2f63', '#ffe066'); txt('A 从第一关重开', 72, 165, 7.5, '#ffe066', 'center'); hot('restart', 20, 152, 104, 26);
+    frame(132, 152, 104, 26, '#2c2447'); txt('B 回到标题', 184, 165, 7.5, '#ffffff', 'center'); hot('title', 132, 152, 104, 26);
   }
 
   function dots(cx0, y, done) {
@@ -288,9 +289,10 @@
     spr(K.hurt, 52 - pc[0].length, 94 - pc.length * 2, 2, K.faceLeft);
     txt((g.def || {}).name || '', 84, 62, 8, '#ffffff');
     txt(`坚持了 ${g.secs || 0} 秒 · 勇者闯过去了`, 84, 80, 6.5, '#cfe8ff', 'left', 700);
-    dots(W / 2, 124, c.stage || 1);
-    txt(`下一位守关者：${c.next || ''}`, W / 2, 152, 7.5, '#7dffb0', 'center');
-    if (c.ready) { frame(68, 164, 120, 20, '#3b2f63', '#ffe066'); txt('A 继续', W / 2, 174, 7.5, '#ffe066', 'center'); hot('next', 68, 164, 120, 20); }
+    dots(W / 2, 118, c.stage || 1);
+    txt('这一局，公主已经救不回来了', W / 2, 142, 6.5, '#ff9a9a', 'center', 700);
+    txt(`下一位守关者：${c.next || ''}`, W / 2, 156, 7, '#7dffb0', 'center');
+    if (c.ready) { frame(68, 168, 120, 20, '#3b2f63', '#ffe066'); txt('A 继续', W / 2, 178, 7.5, '#ffe066', 'center'); hot('next', 68, 168, 120, 20); }
   }
   function drawCleared() {
     const c = V.cleared || {}, g = V.g || {};

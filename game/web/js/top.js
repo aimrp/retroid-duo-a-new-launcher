@@ -307,23 +307,31 @@
   const app = {
     scene: 'intro', langSel: LANG, t: 0, diff: localStorage.getItem('sh_diff') || 'normal', menu: 0, smenu: 0, sel: 0,
     level: 0, runSecs: 0, retry: 0, game: null, attract: null, paused: false, pmenu: 0, floats: [], shake: 0, result: null, tipT: 0, stats: null,
+    lines: [], beaten: 0, beatenBy: [],
   };
+  // 记一道防线的战果（重打同一关会覆盖，不会重复计数）
+  function markLine(level, v) { if (!app.lines) app.lines = []; app.lines[level] = v; }
+  function setBeaten(level, n) {
+    if (!app.beatenBy) app.beatenBy = [];
+    app.beatenBy[level] = Math.max(0, Math.min(3, n | 0));
+    app.beaten = app.beatenBy.reduce((a, b) => a + (b || 0), 0);
+  }
   const DIFFS = ['easy', 'normal', 'hard'], DIFF_CN = { easy: '简单', normal: '普通', hard: '困难' };
   const PMENU = ['继续', '重新开始', 'A/B 键对调', 'X/Y 键对调', '音乐', '回到标题', '退出游戏'];
   // 退出到掌机桌面（APK 里由原生层关掉上下两屏并回到系统桌面）
   function exitGame() { AU.stop(); if (window.GameBridge && window.GameBridge.exit) window.GameBridge.exit(); else go('intro'); }
 
-  function startRun() { app.preview = false; app.level = 0; app.runSecs = 0; app.retry = 0; app.lines = []; app.beaten = 0; go('levelIntro'); }
+  function startRun() { app.preview = false; app.level = 0; app.runSecs = 0; app.retry = 0; app.lines = []; app.beaten = 0; app.beatenBy = []; go('levelIntro'); }
   // 过场预览：假装三关都守住了，依次播 第一关挖地道 → 第二关飞天花板 → 三关全胜结局（设置里进，或 demo=cutscenes）
   function previewCleared(level) {
     app.level = level; app.retry = 0;
     const g = SH.createGame({ level, seed: 7 + level, difficulty: 'normal' });
     g.phase = 'victory'; g.phaseT = 0; g.tick = (38 + level * 9) * 60; g.def.hp = 3 - level % 2;
     app.game = g; app.result = { win: true, secs: Math.round(g.tick / 60), hp: g.def.hp, stats: g.stats, defX: g.def.x };
-    app.lines[level] = 'held'; app.beaten += 3;
+    markLine(level, 'held'); setBeaten(level, 3);
     AU.stop(); AU.sfx('victory'); go('cleared');
   }
-  function startPreview() { AU.init(); app.preview = true; app.runSecs = 0; app.lines = []; app.beaten = 0; previewCleared(0); }
+  function startPreview() { AU.init(); app.preview = true; app.runSecs = 0; app.lines = []; app.beaten = 0; app.beatenBy = []; previewCleared(0); }
   function go(scene) {
     app.scene = scene; app.t = 0;
     if (scene === 'title') { AU.play('title'); app.attract = null; app.menu = 0; app.preview = false; }
@@ -509,12 +517,20 @@
       if ((g.phase === 'victory' && g.phaseT > 150) || (g.phase === 'defeat' && g.phaseT > 210)) {
         app.result = { win: g.phase === 'victory', secs: Math.round(g.tick / 60), hp: g.def.hp, stats: g.stats, defX: g.def.x };
         const last = app.level >= SH.LEVELS.length - 1;
-        app.lines[app.level] = app.result.win ? 'held' : 'lost';
-        app.beaten += app.result.win ? 3 : Math.max(0, 3 - g.heroLives);
+        markLine(app.level, app.result.win ? 'held' : 'lost');
+        setBeaten(app.level, app.result.win ? 3 : Math.max(0, 3 - g.heroLives));
         app.runSecs += app.result.secs;
-        if (app.result.win) { if (!last) { AU.stop(); AU.sfx('victory'); go('cleared'); } else { app.result.secs = app.runSecs; go('ending'); } return; }
-        if (!last) { AU.stop(); AU.sfx('defeat'); go('breached'); return; } // 前两关失守：勇者大摇大摆进下一关
-        AU.stop(); go('result'); AU.sfx('defeat'); // 最后一关失守：公主被救走
+        app.result.lost = (app.lines || []).map((v, i) => (v === 'lost' ? i : -1)).filter(i => i >= 0);
+        app.result.held = heldCount();
+        app.result.runSecs = app.runSecs;
+        if (!last) { // 前两关：守住或失守，都接着往下走
+          if (app.result.win) { AU.stop(); AU.sfx('victory'); go('cleared'); }
+          else { AU.stop(); AU.sfx('defeat'); go('breached'); }
+          return;
+        }
+        // 最后一关：三道防线全守住，公主才救得回来
+        if (app.result.win && heldCount() >= 3) { app.result.secs = app.runSecs; go('ending'); return; }
+        AU.stop(); AU.sfx('defeat'); go('result');
         return;
       }
     }
@@ -792,17 +808,25 @@
     if (t > 40) txt(typed(c[1], 40, t, 3), 160, 68, 7.5, '#ffffff', 'center', { weight: 700 });
     const nd = SH.DEFENDERS[SH.LEVELS[app.level + 1].defender];
     if (t > 120) txt(`下一位守关者：${nd.name}`, 160, 96, 9, '#7dffb0', 'center');
-    if (t > 150) txt('不管前面守没守住，最后一道防线都得硬碰硬。', 160, 114, 6.5, '#cfe8ff', 'center', { weight: 600 });
+    if (t > 150) txt('这一局，公主已经救不回来了——三关必须全部守住。', 160, 114, 6.5, '#ff9a9a', 'center', { weight: 700 });
     if (t > 160 && (t >> 5) % 2) txt('按 A 继续', 160, 140, 8, '#cfe8ff', 'center');
     if ((t > 60 && (inp.pressed.A || inp.pressed.START)) || (DEMO && t > 260)) { AU.stop(); nextLevel(); }
   }
 
-  // ---------- 结算（最后一道防线失守：公主被救走） ----------
+  // ---------- 失败结局：有一道防线破了，这一局就救不回公主，从第一关重来 ----------
   function sceneResult(inp) {
     if (app.t === 110) AU.playWaltz('dread');
     const r = app.result, g = app.game;
+    const lines = app.lines || [];
+    const lastLost = lines[app.level] === 'lost';
+    const held = r.held != null ? r.held : heldCount();
     if (app.t > 30) {
-      if (inp.pressed.A || inp.pressed.START || (DEMO && app.t > 200)) { AU.sfx('confirm'); app.retry++; go('levelIntro'); return; }
+      if (inp.pressed.A || inp.pressed.START || (DEMO && app.t > 200)) {
+        AU.sfx('confirm'); AU.stop();
+        if (DEMO) { app.lines = ['held', 'held', 'held']; app.beaten = 9; app.result.secs = app.runSecs; go('ending'); }
+        else startRun(); // 整局作废：从第一关重新开始
+        return;
+      }
       if (inp.pressed.B) { AU.sfx('select'); go('title'); return; }
     }
     SH.step(g, { def: {} });
@@ -810,12 +834,13 @@
     { const px = Math.max(-30, 300 - app.t * 0.7), wk = (app.t >> 3) % 2; // 勇者带着公主离开
       const gy = g.level.groundY || 156; spr(wk ? 'princess2' : 'princess', px + 16, gy - 22, true); spr(wk ? 'heroB_run' : 'heroB_stand', px, gy - 24, true, ART.firePal); }
     blit(0);
-    txt(`${app.game.level.line}失守……`, 160, 30, 18, '#ff8a8a', 'center');
-    txt('勇者冲过了这条线，一路杀进城堡，把公主救走了。', 160, 56, 8, '#ffffff', 'center', { weight: 700 });
-    txt(`坚持了 ${r.secs} 秒 · 他还剩 ${app.game.heroLives} 条命 · 游戏失败`, 160, 72, 7, '#cfe8ff', 'center', { weight: 700 });
-    txt('提示：他从上方落下时按 B 缩壳——冲撞中被踩不掉血。', 160, 88, 7, '#cfe8ff', 'center', { weight: 600 });
-    txt('这是最后一道防线。按 A 再守一次。', 160, 104, 7, '#cfe8ff', 'center', { weight: 600 });
-    txt('A 重守最后一道防线     B 回到标题', 160, 140, 9, '#ffe066', 'center');
+    txt(lastLost ? '最后一道防线失守……' : '有一道防线早就破了……', 160, 28, 17, '#ff8a8a', 'center');
+    txt(lastLost ? '勇者撞开了城墙，一路杀进城堡，把公主带走了。'
+                 : '勇者早就从地道绕进了城堡深处；等你守住城墙时，公主已经被他带走了。', 160, 52, 7.5, '#ffffff', 'center', { weight: 700 });
+    txt(`这一局坚持了 ${r.runSecs || 0} 秒 · 三道防线守住了 ${held} 道`, 160, 70, 7, '#cfe8ff', 'center', { weight: 700 });
+    txt('三关必须全部守住，公主才救得回来。', 160, 86, 7, '#cfe8ff', 'center', { weight: 600 });
+    txt('提示：他从上方落下时按 B 缩壳——冲撞中被踩不掉血。', 160, 102, 7, '#cfe8ff', 'center', { weight: 600 });
+    txt('A 从第一关重新开始     B 回到标题', 160, 140, 9, '#ffe066', 'center');
   }
 
   // ======================= 结局 =======================
@@ -1166,7 +1191,7 @@
     else if (id === 'pause' && app.scene === 'play') { app.paused = !app.paused; app.pmenu = 0; AU.sfx('pause'); }
     else if (id.startsWith('pm:') && app.scene === 'play' && app.paused) { app.pmenu = +id.slice(3); pauseAction(app.pmenu); }
     else if (id === 'next' && app.scene === 'breached' && app.t > 60) { AU.stop(); nextLevel(); }
-    else if (id === 'retry' && app.scene === 'result') { AU.sfx('confirm'); app.retry++; go('levelIntro'); }
+    else if ((id === 'retry' || id === 'restart') && app.scene === 'result') { AU.sfx('confirm'); AU.stop(); startRun(); }
     else if (id === 'next' && app.scene === 'cleared' && app.t > clearedDone()) nextLevel();
     else if ((id === 'restart' || id === 'endtitle') && app.scene === 'ending' && app.t >= ET.restart && !app.leaving) { AU.fadeOut(2.5); app.leaving = 1; app.leaveTo = id === 'restart' ? 'run' : 'title'; }
     else if (id === 'title' && (app.scene === 'result' || app.scene === 'ending')) { AU.stop(); go('title'); }
@@ -1189,7 +1214,8 @@
       if (inp.pressed.START || inp.pressed.A) AU.init();
       app.t++;
       if (app.shake > 0) app.shake *= 0.85, app.shake < 0.5 && (app.shake = 0);
-      SCENES[app.scene](inp);
+      try { SCENES[app.scene](inp); }
+      catch (e) { if (!window.__sceneErr) { window.__sceneErr = 1; console.error('scene error', app.scene, e); } }
       frame++;
       if (frame % 4 === 0) LINK.send({ type: 'vm', vm: vm() });
     }
