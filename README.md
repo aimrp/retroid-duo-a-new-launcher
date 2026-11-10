@@ -1,4 +1,4 @@
-# Agent Deck
+# Retroid Duo a New Launcher
 
 把一台 **Retroid Pocket Duo**（上下双触屏掌机）DIY 成随身小电脑：**桌面 + 控制台 + 输入法**，一个 APK 搞定，不需要 root。
 
