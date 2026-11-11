@@ -4,7 +4,7 @@
   const PAL = {
     k: '#1a1426', K: '#3a2f4f',
     // 勇者
-    h: '#e8a33a', H: '#ffd37a', V: '#9a5a1e', X: '#3fae8f', U: '#9c7a4a', J: '#664d2c', r: '#e0344c', R: '#9c1f33', s: '#f4c48e', S: '#c98e5c',
+    h: '#d8352f', H: '#ff7a6b', V: '#8a1f1c', X: '#3fae8f', U: '#c4302b', J: '#7e1c1a', r: '#e0344c', R: '#9c1f33', s: '#f4c48e', S: '#c98e5c',
     b: '#3f6fd9', B: '#26479c', y: '#f5c84a', w: '#6e4126', W: '#3f2414',
     // 乌龟队长
     g: '#2fb38c', G: '#1b6e59', l: '#f4e2ad', o: '#f39a48', O: '#c56a28', e: '#ffffff',
@@ -20,19 +20,19 @@
   };
 
   const S = {};
-  // —— 小勇者 12×16（朝右）：原创工匠——鸭舌帽 + 短袖 + 工装背带裤（帽 h/H/V，衬衫 X，背带裤 U/J，扣子 y） ——
+  // —— 小勇者 12×16（朝右）：原创工匠——鸭舌帽 + 短袖 + 工装背带裤（帽 h/H/V，衬衫 X，背带裤 U/J，扣子 z） ——
   const heroHead = ['............', '...kkkkk....', '..khHHhhk...', '..khhhhhhk..', '..kkkkkVVVVk', '..kWsssssk..', '..kWssksSk..', '...kssssk...'];
-  S.heroS_stand = heroHead.concat(['..kXUXXUXk..', '.ksXUyyUXsk.', '.ksUUUUUUsk.', '..kUUUUUUk..', '..kJJkkJJk..', '..kJk..kJk..', '.kwwk..kwwk.', '.kkkk..kkkk.']);
-  S.heroS_run = heroHead.concat(['..kXUXXUXks.', '.ksXUyyUXk..', '..kUUUUUUk..', '..kUUUUUUk..', '..kJJJJJJk..', '.kJJk..kJJk.', 'kwwk....kwwk', 'kkk......kkk']);
-  S.heroS_jump = heroHead.concat(['..kXUXXUXks.', '.ksXUyyUXsk.', '..kUUUUUUk..', '..kUUUUUUk..', '..kJJJJJJk..', '..kJJkkwwk..', '..kwwk.kkk..', '..kkk.......']);
-  S.heroS_dead = ['............', '...kkkkkk...', '..khHHhhhk..', '..khhhhhhk..', '..kVVVVVVk..', '..kssssssk..', '..kskssksk..', '...ksSSsk...', '.sskXUUXkss.', '..kXyUUyXk..', '..kUUUUUUk..', '..kUUUUUUk..', '..kJJkkJJk..', '..kJk..kJk..', '.kwwk..kwwk.', '.kkkk..kkkk.'];
+  S.heroS_stand = heroHead.concat(['..kXUXXUXk..', '.ksXUzzUXsk.', '.ksUUUUUUsk.', '..kUUUUUUk..', '..kJJkkJJk..', '..kJk..kJk..', '.kwwk..kwwk.', '.kkkk..kkkk.']);
+  S.heroS_run = heroHead.concat(['..kXUXXUXks.', '.ksXUzzUXk..', '..kUUUUUUk..', '..kUUUUUUk..', '..kJJJJJJk..', '.kJJk..kJJk.', 'kwwk....kwwk', 'kkk......kkk']);
+  S.heroS_jump = heroHead.concat(['..kXUXXUXks.', '.ksXUzzUXsk.', '..kUUUUUUk..', '..kUUUUUUk..', '..kJJJJJJk..', '..kJJkkwwk..', '..kwwk.kkk..', '..kkk.......']);
+  S.heroS_dead = ['............', '...kkkkkk...', '..khHHhhhk..', '..khhhhhhk..', '..kVVVVVVk..', '..kssssssk..', '..kskssksk..', '...ksSSsk...', '.sskXUUXkss.', '..kXzUUzXk..', '..kUUUUUUk..', '..kUUUUUUk..', '..kJJkkJJk..', '..kJk..kJk..', '.kwwk..kwwk.', '.kkkk..kkkk.'];
   // 爬梯子（背影；水平翻转就是另一帧）
   S.heroS_climb = ['............', '...kkkkkk...', '..khhhhhhk..', '..khHhhhhk..', '..kVVVVVVk..', '.skWWWWWWk..', '.skWWWWWWk..', '..kkkkkkkks.', '..kXUXXUXks.', '..kXUXXUXk..', '..kUUUUUUk..', '..kJJJJJJk..', '..kJJkkJJk..', '..kJk..kJk..', '.kwwk..kwwk.', '.kkkk..kkkk.'];
   // —— 大勇者 12×24 ——
   const bigHead = ['............', '...kkkkk....', '..khHHhhk...', '..khhhhhhk..', '..kkkkkVVVVk', '..kWsssssk..', '..kWssksSk..', '..kWsssssk..', '...ksssSk...', '....kkkk....'];
-  S.heroB_stand = bigHead.concat(['..kXUXXUXk..', '.kXXUXXUXXk.', '.ksXUUUUXsk.', '.ksUUyyUUsk.', '.ksUUUUUUsk.', '.kskUUUUksk.', '..kUUUUUUk..', '..kJJJJJJk..', '..kJJkkJJk..', '..kJJkkJJk..', '..kJk..kJk..', '.kwwk..kwwk.', '.kwwk..kwwk.', '.kkkk..kkkk.']);
-  S.heroB_run = bigHead.concat(['..kXUXXUXks.', '.kXXUXXUXXks', '.ksXUUUUXk..', '.ksUUyyUUk..', '..kUUUUUUk..', '..kUUUUUUk..', '..kUUUUUUk..', '..kJJJJJJk..', '.kJJJkkJJJk.', '.kJJk..kJJk.', 'kJJk....kJJk', 'kwwk....kwwk', 'kwwk.....kkk', 'kkk.........']);
-  S.heroB_jump = bigHead.concat(['..kXUXXUXkss', '.kXXUXXUXXk.', '.ksXUUUUXk..', '.ksUUyyUUk..', '..kUUUUUUk..', '..kUUUUUUk..', '..kUUUUUUk..', '..kJJJJJJk..', '..kJJJkJJk..', '..kJJk.kwwk.', '..kJJk.kwwk.', '..kwwk.kkk..', '..kwwk......', '..kkk.......']);
+  S.heroB_stand = bigHead.concat(['..kXUXXUXk..', '.kXXUXXUXXk.', '.ksXUUUUXsk.', '.ksUUzzUUsk.', '.ksUUUUUUsk.', '.kskUUUUksk.', '..kUUUUUUk..', '..kJJJJJJk..', '..kJJkkJJk..', '..kJJkkJJk..', '..kJk..kJk..', '.kwwk..kwwk.', '.kwwk..kwwk.', '.kkkk..kkkk.']);
+  S.heroB_run = bigHead.concat(['..kXUXXUXks.', '.kXXUXXUXXks', '.ksXUUUUXk..', '.ksUUzzUUk..', '..kUUUUUUk..', '..kUUUUUUk..', '..kUUUUUUk..', '..kJJJJJJk..', '.kJJJkkJJJk.', '.kJJk..kJJk.', 'kJJk....kJJk', 'kwwk....kwwk', 'kwwk.....kkk', 'kkk.........']);
+  S.heroB_jump = bigHead.concat(['..kXUXXUXkss', '.kXXUXXUXXk.', '.ksXUUUUXk..', '.ksUUzzUUk..', '..kUUUUUUk..', '..kUUUUUUk..', '..kUUUUUUk..', '..kJJJJJJk..', '..kJJJkJJk..', '..kJJk.kwwk.', '..kJJk.kwwk.', '..kwwk.kkk..', '..kwwk......', '..kkk.......']);
   // —— 壳壳队长 16×18（朝右，头上系红头巾） ——
   S.turtle_walk1 = [
     '..........kkkk..',
@@ -196,5 +196,5 @@
 
   root.ART = { S, PAL, mk, check,
     firePal: { b: '#f6f1e6', B: '#d8462a', r: '#ffb02e', y: '#ffd43b', h: '#ff6a2a', H: '#ffb36b', V: '#a8341a', X: '#ffb02e', U: '#3a3a48', J: '#22222c' },
-    starPal: { b: '#ffe066', B: '#f39a48', U: '#ffe066', J: '#f39a48', h: '#fff3b0' } };
+    starPal: { b: '#ffe066', B: '#f39a48', U: '#ffe066', J: '#f39a48', h: '#fff3b0', H: '#ffffff', V: '#f39a48' } };
 })(typeof window !== 'undefined' ? window : globalThis);
