@@ -114,5 +114,5 @@
   S.dfire1 = ['......kkkk..', '...kkfFFFFk.', '.kfffFxxxFFk', 'kffFFxxxxxFk', 'kffFFxxxxxFk', '.kfffFxxxFFk', '...kkfFFFFk.', '......kkkk..'];
   S.dfire2 = ['.......kkk..', '..kkkfFFFFk.', 'kfffFFxxxFFk', '.kfFFxxxxxFk', 'kffFFxxxxxFk', '.kffFFxxxFFk', '..kkkfFFFFk.', '.......kkk..'];
 
-  ART.knightPal = { h: '#d9dce8', H: '#ffffff', b: '#7a5ac9', B: '#4a3486', r: '#c9cce0', R: '#8888a0', y: '#f5c84a', s: '#e9b98a' };
+  ART.knightPal = { h: '#d9dce8', H: '#ffffff', b: '#7a5ac9', B: '#4a3486', U: '#7a5ac9', J: '#4a3486', X: '#c9cce0', V: '#8888a0', r: '#c9cce0', R: '#8888a0', y: '#f5c84a', s: '#e9b98a' };
 })(window);
