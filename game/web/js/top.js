@@ -528,8 +528,8 @@
           else { AU.stop(); AU.sfx('defeat'); go('breached'); }
           return;
         }
-        // 最后一关：三道防线全守住，公主才不会被救走
-        if (app.result.win && heldCount() >= 3) { app.result.secs = app.runSecs; go('ending'); return; }
+        // 最后一关：只要守住最后这道防线，公主就不会被救走（前两关失守不影响）
+        if (app.result.win) { app.result.secs = app.runSecs; go('ending'); return; }
         AU.stop(); AU.sfx('defeat'); go('result');
         return;
       }
@@ -813,7 +813,7 @@
     if ((t > 60 && (inp.pressed.A || inp.pressed.START)) || (DEMO && t > 260)) { AU.stop(); nextLevel(); }
   }
 
-  // ---------- 失败结局：有一道防线破了，这一局公主就被救走，从第一关重来 ----------
+  // ---------- 失败结局：最后一道防线破了，公主被救走，从第一关重来 ----------
   function sceneResult(inp) {
     if (app.t === 110) AU.playWaltz('dread');
     const r = app.result, g = app.game;
@@ -838,7 +838,7 @@
     txt(lastLost ? '勇者撞开了城墙，一路杀进城堡，把公主带走了。'
                  : '勇者早就从地道绕进了城堡深处；等你守住城墙时，公主已经被他带走了。', 160, 52, 7.5, '#ffffff', 'center', { weight: 700 });
     txt(`这一局坚持了 ${r.runSecs || 0} 秒 · 三道防线守住了 ${held} 道`, 160, 70, 7, '#cfe8ff', 'center', { weight: 700 });
-    txt('三关必须全部守住，公主才不会被救走。', 160, 86, 7, '#cfe8ff', 'center', { weight: 600 });
+    txt('守住最后一道防线，公主就不会被救走。', 160, 86, 7, '#cfe8ff', 'center', { weight: 600 });
     txt('提示：他从上方落下时按 B 缩壳——冲撞中被踩不掉血。', 160, 102, 7, '#cfe8ff', 'center', { weight: 600 });
     txt('A 从第一关重新开始     B 回到标题', 160, 140, 9, '#ffe066', 'center');
   }

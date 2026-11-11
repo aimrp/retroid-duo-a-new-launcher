@@ -58,7 +58,7 @@
     '有一道防线早就破了……': 'One of the lines had already fallen…',
     '勇者撞开了城墙，一路杀进城堡，把公主带走了。': 'The hero smashed through the wall, stormed the castle and carried the princess off.',
     '勇者早就从地道绕进了城堡深处；等你守住城墙时，公主已经被他带走了。': 'The hero had already slipped into the castle through the tunnels; by the time you held the wall, the princess was gone.',
-    '三关必须全部守住，公主才不会被救走。': 'All three lines must hold — or the princess is carried off.',
+    '守住最后一道防线，公主就不会被救走。': 'Hold the last line and the princess stays put.',
     'A 从第一关重新开始     B 回到标题': 'A  Restart from line 1     B  Back to title',
     'A 从第一关重开': 'A  Restart from line 1',
     '防线失守 · 公主被带走了': 'Line fallen · the princess was carried off',
