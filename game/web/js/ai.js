@@ -257,6 +257,8 @@
       if (it) dir = Math.sign(cx(it) - dc);
       if (rnd() < 0.004) inp.jumpP = true;
     }
+    // 会扇翅膀的龙：往下掉、勇者在头顶附近时补一下二连跳
+    if (d.kind === 'dragon' && !d.onGround && !d.flapped && d.vy > 0.5 && Math.abs(cx(st.hero) - dc) < 40 && rnd() < 0.08) inp.jumpP = true;
     if (dir < 0) inp.left = true; else if (dir > 0) inp.right = true;
     inp.jump = inp.jumpP;
     return inp;

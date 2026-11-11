@@ -13,7 +13,7 @@
     '公主就在我身后。想过去？先过我。': 'The princess is behind me. Get through me first.',
     '冲撞': 'Dash', '甩壳': 'Shell Toss', '甲虫兵': 'Beetle',
     '翻滚': 'Roll', '掷孢子': 'Spore Toss', '小蘑菇': 'Mini Shroom',
-    '冲锋': 'Charge', '吐火球': 'Fire Breath', '小火苗': 'Little Flame',
+    '冲锋': 'Charge', '吐火球': 'Fire Breath', '小火苗': 'Little Flame', '小火龙': 'Mini Drake',
     '小勇者': 'Small Hero', '大勇者': 'Big Hero', '火焰勇者': 'Fire Hero',
     '投掷': 'Throw', '召唤': 'Summon', '跳跃': 'Jump', '小兵': 'Minion',
     // —— 开场 / 标题 ——
@@ -61,6 +61,7 @@
     '守住最后一道防线，公主就不会被救走。': 'Hold the last line and the princess stays put.',
     'A 从第一关重新开始     B 回到标题': 'A  Restart from line 1     B  Back to title',
     'A 从第一关重开': 'A  Restart from line 1',
+    'A 从第一关重新开始': 'A  Restart from line 1', 'A 重守这一道防线': 'A  Defend this line again',
     '前面的防线你都守住了，勇者还被挡在这里——再守一次！': 'You held every line before this one. The hero is still stuck here — hold it again!',
     '防线失守 · 再守一次': 'Line fallen · try again',
     '前面守住的不作废，重守这一道就行。': 'Lines you held still count. Just hold this one again.',

@@ -235,6 +235,11 @@
     else if (Math.abs(d.vx) > 0.2 && (d.anim >> 3) % 2) name = P || K.walk2;
     else name = P || K.walk1;
     place(name);
+    if (d.flapT > 0) { // 扇翅膀：两侧各一片翅膀，上下扑腾
+      const up = (d.flapT >> 2) % 2, wy = Math.round(d.y + (up ? 1 : 6)), wh = up ? 7 : 4;
+      lx.fillStyle = '#1a1426'; lx.fillRect(Math.round(d.x - 7), wy - 1, 8, wh + 2); lx.fillRect(Math.round(d.x + d.w - 1), wy - 1, 8, wh + 2);
+      lx.fillStyle = '#7b3fa0'; lx.fillRect(Math.round(d.x - 6), wy, 6, wh); lx.fillRect(Math.round(d.x + d.w), wy, 6, wh);
+    }
   }
 
   function drawWorld(st, t) {
@@ -250,6 +255,13 @@
     }
     if (st.phase !== 'defeat') drawHero(st.hero, st.tick, st);
     for (const m of st.minions) {
+      if (m.drake) { // 小火龙：贴图朝左；蓄力时闪红、趴着最后一秒闪烁
+        if (m.dead) { spr('drake', m.x, m.y + m.dead * 1.5, m.face > 0, null, true); continue; }
+        if (m.breath <= 0 && m.sitT > 240 && (st.tick >> 2) % 2) continue;
+        spr('drake', m.x, m.y, m.face > 0, m.charge && (m.charge >> 2) % 2 ? { D: '#ff4a2a', L: '#ffd43b' } : null);
+        if (m.charge) { lx.fillStyle = '#ffd43b'; lx.fillRect(Math.round(m.face > 0 ? m.x + m.w : m.x - 2), Math.round(m.y + 3), 2, 2); }
+        continue;
+      }
       if (m.dead) { if (m.flip) spr('beetle1', m.x, m.y + m.dead * 1.5, false, K.minionPal, true); else spr('beetle_flat', m.x, m.y, false, K.minionPal); }
       else spr((m.anim >> 3) % 2 ? 'beetle1' : 'beetle2', m.x, m.y - 1, m.vx < 0, K.minionPal);
     }
@@ -340,12 +352,14 @@
   }
   function startPreview() { AU.init(); app.preview = true; app.runSecs = 0; app.lines = []; app.beaten = 0; app.beatenBy = []; previewCleared(0); }
   function go(scene) {
-    app.scene = scene; app.t = 0;
+    app.scene = scene; app.t = 0; app.esel = 0; // 结束页按钮：0 = 重新开始，1 = 回到标题
     if (scene === 'title') { AU.play('title'); app.attract = null; app.menu = 0; app.preview = false; }
     if (scene === 'lang') { app.langSel = LANG; app.smenu = 0; }
     if (scene === 'levelIntro') {
       const lv = SH.LEVELS[app.level];
-      app.game = SH.createGame({ level: app.level, seed: DEMO ? DEMO.seed + app.level * 101 + app.retry * 7 : (Date.now() & 0xffff) + 1, difficulty: 'normal' });
+      // 前面每丢一道防线，这一关的守关者就少一滴血（3 → 2 → 1）
+      const lostBefore = (app.lines || []).slice(0, app.level).filter(v => v === 'lost').length;
+      app.game = SH.createGame({ level: app.level, seed: DEMO ? DEMO.seed + app.level * 101 + app.retry * 7 : (Date.now() & 0xffff) + 1, difficulty: 'normal', hp: 3 - lostBefore });
       app.floats = []; AU.play(lv.id === 'cave' ? 'cave' : lv.id === 'wall' ? 'wall' : 'grass');
     }
     if (scene === 'play') { app.paused = false; }
@@ -825,6 +839,12 @@
   }
 
   // 重守刚失守的这一道防线（前面守住的保留）
+  // 结束页的两个按钮：方向键左右选，A 确认；选中的那个高亮带 ▶
+  function choice2(a, b, y) {
+    const s = app.esel;
+    txt((s ? '' : '▶ ') + a, 104, y, s ? 8 : 9, s ? '#cfe8ff' : '#ffe066', 'center', { weight: 700 });
+    txt((s ? '▶ ' : '') + b, 230, y, s ? 9 : 8, s ? '#ffe066' : '#cfe8ff', 'center', { weight: 700 });
+  }
   function retryLine() { app.retry++; go('levelIntro'); }
   const LINE_CN = ['第一道防线', '第二道防线', '最后一道防线'];
 
@@ -837,6 +857,8 @@
     const lastLost = lines[app.level] === 'lost';
     const held = r.held != null ? r.held : heldCount();
     if (app.t > 30) {
+      if (inp.pressed.left || inp.pressed.right) { app.esel = inp.pressed.left ? 0 : 1; AU.sfx('select'); }
+      if ((inp.pressed.A || inp.pressed.START) && app.esel === 1) { AU.sfx('select'); go('title'); return; }
       if (inp.pressed.A || inp.pressed.START || (DEMO && app.t > 200)) {
         AU.sfx('confirm'); AU.stop();
         if (r.retryLine) retryLine();
@@ -854,7 +876,7 @@
       txt('前面的防线你都守住了，勇者还被挡在这里——再守一次！', 160, 60, 7.5, '#ffffff', 'center', { weight: 700 });
       txt(`这一局坚持了 ${r.runSecs || 0} 秒 · 三道防线守住了 ${held} 道`, 160, 80, 7, '#cfe8ff', 'center', { weight: 700 });
       txt('提示：他从上方落下时按 B 缩壳——冲撞中被踩不掉血。', 160, 100, 7, '#cfe8ff', 'center', { weight: 600 });
-      txt('A 重守这一道防线     B 回到标题', 160, 140, 9, '#ffe066', 'center');
+      choice2('A 重守这一道防线', 'B 回到标题', 140);
       return;
     }
     { const px = Math.max(-30, 300 - app.t * 0.7), wk = (app.t >> 3) % 2; // 勇者带着公主离开
@@ -866,7 +888,7 @@
     txt(`这一局坚持了 ${r.runSecs || 0} 秒 · 三道防线守住了 ${held} 道`, 160, 70, 7, '#cfe8ff', 'center', { weight: 700 });
     txt('守住最后一道防线，公主就不会被救走。', 160, 86, 7, '#cfe8ff', 'center', { weight: 600 });
     txt('提示：他从上方落下时按 B 缩壳——冲撞中被踩不掉血。', 160, 102, 7, '#cfe8ff', 'center', { weight: 600 });
-    txt('A 从第一关重新开始     B 回到标题', 160, 140, 9, '#ffe066', 'center');
+    choice2('A 从第一关重新开始', 'B 回到标题', 140);
   }
 
   // ======================= 结局 =======================
@@ -1117,7 +1139,8 @@
     } else if (t < ET.restart) {
       if (inp.pressed.START) app.t = ET.restart;
     } else {
-      if (inp.pressed.A || inp.pressed.START) { AU.fadeOut(2.5); app.leaving = 1; app.leaveTo = 'run'; }
+      if (inp.pressed.left || inp.pressed.right) { app.esel = inp.pressed.left ? 0 : 1; AU.sfx('select'); }
+      if (inp.pressed.A || inp.pressed.START) { AU.fadeOut(2.5); app.leaving = 1; app.leaveTo = app.esel ? 'title' : 'run'; }
       else if (inp.pressed.B || (DEMO && t > ET.restart + 300)) { AU.fadeOut(2.5); app.leaving = 1; app.leaveTo = 'title'; }
     }
     endWorld(app.t);
@@ -1159,8 +1182,8 @@
       cx.globalAlpha = 1;
       if (t >= ET.restart) {
         cx.globalAlpha = clamp01((t - ET.restart) / 60);
-        txt('▶ A 重新开始', 120, 170, 8, '#ffe066', 'center');
-        txt('B 回到标题', 210, 170, 7, '#cfe8ff', 'center', { weight: 700 });
+        txt((app.esel ? '' : '▶ ') + 'A 重新开始', 120, 170, app.esel ? 7 : 8, app.esel ? '#cfe8ff' : '#ffe066', 'center', { weight: 700 });
+        txt((app.esel ? '▶ ' : '') + 'B 回到标题', 210, 170, app.esel ? 8 : 7, app.esel ? '#ffe066' : '#cfe8ff', 'center', { weight: 700 });
         cx.globalAlpha = 1;
       }
     } else if (t > 60 && t < ET.credits) txt('START 跳到片尾', 314, 174, 5, 'rgba(207,232,255,0.5)', 'right', { weight: 600, shadow: false });
@@ -1181,7 +1204,7 @@
   function bottomPulse(type) { pulses.push(type); }
   function vm() {
     const o = { lang: LANG, langSel: app.langSel, scene: app.scene, t: app.t, diff: app.diff, diffCn: DIFF_CN[app.diff], sel: app.sel, paused: app.paused, pmenu: app.pmenu, menu: app.menu, smenu: app.smenu,
-      swap: IN.swap, music: AU.musicOn, raw: IN.lastRaw, pulses };
+      swap: IN.swap, music: AU.musicOn, esel: app.esel || 0, raw: IN.lastRaw, pulses };
     if (app.scene === 'intro') { o.intro = { t: app.t, en: app.t > IT.l2 ? INTRO.l2en : app.t > IT.l1 ? INTRO.l1en : '', IT }; }
     const g = app.game;
     if (g && (app.scene === 'play' || app.scene === 'levelIntro' || app.scene === 'result' || app.scene === 'cleared' || app.scene === 'breached')) {

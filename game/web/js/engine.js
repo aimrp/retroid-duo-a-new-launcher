@@ -67,7 +67,7 @@
     },
     {
       id: 'wall', world: 3, name: '黄昏城墙', en: 'CASTLE WALL', line: '最后一道防线', defender: 'dragon', open: true, ai: 0.9,
-      items: { grow: 3, prop: 3, star: 2, life: 2 }, starts: [[1, 0], [1, 0], [2, 1]],
+      items: { grow: 3, prop: 3, star: 2, life: 2 }, starts: [[1, 0], [1, 0], [2, 1]], heroLives: 4, // 最后一关勇者多一条命（经模拟调过）
       solids: frame3([].concat(blocks(72, 104, 3, [1]), blocks(224, 104, 3, [1]), blocks(128, 68, 4, null))),
       ledges: [{ x1: 72, x2: 120, y: 104 }, { x1: 224, x2: 272, y: 104 }, { x1: 128, x2: 192, y: 68 }, { x1: 12, x2: 40, y: 124 }],
       heroSpawn: { x: 21, y: 124 }, defSpawn: { x: 262, y: 156 },
@@ -78,7 +78,7 @@
     shroom: { name: '菇菇长老', en: 'ELDER SPORE', w: 14, h: 15, open: true, hpBonus: 0,
       skills: { B: '翻滚', X: '掷孢子', Y: '小蘑菇' }, minion: '小蘑菇', line: '这条水道，谁也别想钻过去。' },
     dragon: { name: '熔岩龙王', en: 'MAGMA KING', w: 20, h: 20, open: true, hpBonus: 0,
-      skills: { B: '冲锋', X: '吐火球', Y: '小火苗' }, jumpMul: 1.2, fire: true, shellCd: 140, minion: '小火苗', line: '公主就在我身后。想过去？先过我。' },
+      skills: { B: '冲锋', X: '吐火球', Y: '小火龙' }, jumpMul: 1.2, fire: true, shellCd: 140, minion: '小火龙', drakes: true, flap: true, line: '公主就在我身后。想过去？先过我。' },
     turtle: { name: '壳壳队长', en: 'CAPTAIN SHELL', w: 14, h: 16, open: true, hpBonus: 0,
       skills: { B: '冲撞', X: '甩壳', Y: '甲虫兵' }, minion: '甲虫兵', line: '第一道防线，交给我。' },
   };
@@ -158,13 +158,14 @@
       phase: 'spawn', phaseT: 0,
       solids: lv.solids.map(s => Object.assign({ active: true, timer: 0, bump: 0 }, s)),
       def: null, hero: null,
-      heroLives: TUNE.heroLives, heroRound: 0,
+      heroLives: lv.heroLives || TUNE.heroLives, heroRound: 0,
       shells: [], minions: [], fireballs: [], items: [], fx: [],
       events: [], stats: { stomps: 0, heroHits: 0, rounds: [] },
       roundT: 0, difficulty: opts.difficulty || 'normal',
     };
     const ds = DEFENDERS[lv.defender];
-    const HP0 = DIFF_HP.normal + (ds.hpBonus || 0); // 只有一个难度
+    // 守关者血量：默认 3 滴；前面每丢一道防线少一滴（最少 1 滴），由外面按战绩传入 opts.hp
+    const HP0 = opts.hp != null ? Math.max(1, opts.hp | 0) : DIFF_HP.normal + (ds.hpBonus || 0);
     st.def = {
       kind: lv.defender, x: lv.defSpawn.x, y: lv.defSpawn.y - ds.h, w: ds.w, h: ds.h, vx: 0, vy: 0, face: -1,
       onGround: true, hp: HP0, maxHp: HP0, inv: 0, dash: 0, dashCd: 0, shellCd: 60, summonCd: 120,
@@ -283,7 +284,13 @@
     d.jumpBuf = di.jumpP ? 7 : Math.max(0, d.jumpBuf - 1);
     if (d.jumpBuf > 0 && d.coyote > 0 && !stunned) {
       d.vy = -P.jump * (DEFENDERS[d.kind].jumpMul || 1); d.coyote = 0; d.jumpBuf = 0; d.onGround = false; ev(st, 'jump', d.x, d.y, { who: 'def' });
+    } else if (di.jumpP && !d.onGround && DEFENDERS[d.kind].flap && !d.flapped && !stunned) {
+      // 熔岩龙王：空中再扇一下翅膀（二连跳），落地前只能扇一次，不能一直飞
+      d.vy = -P.jump * 0.95; d.flapped = true; d.flapT = 16; d.jumpBuf = 0;
+      ev(st, 'jump', d.x, d.y, { who: 'def' }); puff(st, d.x + d.w / 2, d.y + d.h, 'puff', 16);
     }
+    if (d.onGround) d.flapped = false;
+    if (d.flapT > 0) d.flapT--;
     applyGravity(d, di.jump);
     const r = moveBody(d, solids);
     if (r.headHit) bumpBlock(st, r.headHit, 'def');
@@ -310,8 +317,13 @@
       d.shellCd = DK.shellCd || P.shellCd;
     }
     // 召唤
-    if (di.summonP && d.summonCd <= 0 && !stunned && st.minions.length < P.maxMinions && st.phase !== 'heroDown') {
+    if (di.summonP && d.summonCd <= 0 && !stunned && st.minions.length < (DEFENDERS[d.kind].drakes ? 1 : P.maxMinions) && st.phase !== 'heroDown') {
       const md = d.face;
+      if (DEFENDERS[d.kind].drakes) { // 熔岩龙王：一次往前扔出两只小火龙（一近一远），各自能喷一次火
+        for (const [vx, vy] of [[1.2, -3.2], [2.0, -2.6]])
+          st.minions.push({ x: d.x + d.w / 2 - 6 + md * 10, y: d.y + d.h - 12, w: 12, h: 10, vx: md * vx, vy, onGround: false, dead: 0, anim: 0,
+            drake: true, breath: 1, charge: 0, sitT: 0, face: md, landed: false });
+      } else
       st.minions.push({ x: d.x + d.w / 2 - 5 + md * 10, y: d.y + d.h - 10, w: 10, h: 9, vx: md * TUNE.minion.speed, vy: -2.4, onGround: false, dead: 0, anim: 0 });
       d.summonCd = P.summonCd; ev(st, 'summon', d.x, d.y); puff(st, d.x + d.w / 2 + md * 10, d.y + d.h - 6, 'spark');
     }
@@ -392,11 +404,38 @@
       m.anim++;
       if (m.dead) { m.dead++; continue; }
       m.vy = Math.min(TUNE.maxFall, m.vy + TUNE.gravFast);
+      if (m.drake) { stepDrake(st, m, solids); continue; }
       const r = moveBody(m, solids);
       if (r.hitX) m.vx = -m.vx || TUNE.minion.speed;
       if (Math.abs(m.vx) < TUNE.minion.speed) m.vx = Math.sign(m.vx || 1) * TUNE.minion.speed;
     }
-    st.minions = st.minions.filter(m => !m.dead || m.dead < 40);
+    st.minions = st.minions.filter(m => !m.gone && (!m.dead || m.dead < 40));
+  }
+
+  // 小火龙：落地后朝勇者慢慢爬；勇者进了射程就停下蓄力（闪一下）、喷一团直线小火，喷完趴在原地，过一阵散掉
+  function stepDrake(st, m, solids) {
+    const h = st.hero, hx = h.x + h.w / 2, mx = m.x + m.w / 2;
+    if (m.breath > 0 && m.charge > 0) { // 蓄力中：不动
+      m.vx = 0; moveBody(m, solids);
+      if (++m.charge >= 24) {
+        st.shells.push({ x: m.face > 0 ? m.x + m.w - 2 : m.x - 10, y: m.y + 1, w: 12, h: 8, vx: m.face * 2.7, vy: 0, state: 'moving', fire: true, small: true, bounces: 0, life: 60, onGround: false, owner: 'def' });
+        m.breath = 0; m.charge = 0; ev(st, 'breath', m.x, m.y);
+      }
+      return;
+    }
+    if (m.breath <= 0) { // 喷过了：趴着，约 5 秒后散掉
+      m.vx = 0; moveBody(m, solids);
+      if (++m.sitT > 300) { m.gone = true; puff(st, mx, m.y + m.h / 2, 'puff'); }
+      return;
+    }
+    if (m.onGround) {
+      if (!m.landed) { m.landed = true; }
+      m.face = hx < mx ? -1 : 1;
+      m.vx = m.face * TUNE.minion.speed;
+      if (!h.dead && st.phase === 'fight' && Math.abs(hx - mx) < 96 && Math.abs((h.y + h.h) - (m.y + m.h)) < 28) { m.charge = 1; m.vx = 0; }
+    }
+    const r = moveBody(m, solids);
+    if (r.hitX) m.vx = -m.vx;
   }
 
   function stepFireballs(st, solids) {

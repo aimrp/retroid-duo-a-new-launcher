@@ -218,8 +218,9 @@
     txt(`打中勇者 ${st.heroHits} 次`, 140, 74, 7, '#ffffff', 'left', 700);
     dots(W / 2, 116, 3);
     txt(rl ? '前面守住的不作废，重守这一道就行。' : '守住最后一道防线，公主就不会被救走。', W / 2, 140, 6.5, '#cfe8ff', 'center', 700);
-    frame(20, 152, 104, 26, '#3b2f63', '#ffe066'); txt(rl ? 'A 重守这一关' : 'A 从第一关重开', 72, 165, 7.5, '#ffe066', 'center'); hot('restart', 20, 152, 104, 26);
-    frame(132, 152, 104, 26, '#2c2447'); txt('B 回到标题', 184, 165, 7.5, '#ffffff', 'center'); hot('title', 132, 152, 104, 26);
+    const s1 = V.esel === 1;
+    frame(20, 152, 104, 26, s1 ? '#2c2447' : '#3b2f63', s1 ? undefined : '#ffe066'); txt(rl ? 'A 重守这一关' : 'A 从第一关重开', 72, 165, 7.5, s1 ? '#ffffff' : '#ffe066', 'center'); hot('restart', 20, 152, 104, 26);
+    frame(132, 152, 104, 26, s1 ? '#3b2f63' : '#2c2447', s1 ? '#ffe066' : undefined); txt('B 回到标题', 184, 165, 7.5, s1 ? '#ffe066' : '#ffffff', 'center'); hot('title', 132, 152, 104, 26);
   }
 
   function dots(cx0, y, done) {
@@ -329,8 +330,9 @@
     }
     if (e.credits) {
       txt('谢谢你，让一个 NPC 当了一回主角。', W / 2, 138, 7.5, '#ffffff', 'center', 800);
-      if (e.end) { frame(20, 164, 104, 20, '#3b2f63', '#ffe066'); txt('A 重新开始', 72, 174, 7.5, '#ffe066', 'center'); hot('restart', 20, 164, 104, 20);
-        frame(132, 164, 104, 20, '#2c2447'); txt('B 回到标题', 184, 174, 7, '#ffffff', 'center'); hot('endtitle', 132, 164, 104, 20); }
+      if (e.end) { const s1 = V.esel === 1;
+        frame(20, 164, 104, 20, s1 ? '#2c2447' : '#3b2f63', s1 ? undefined : '#ffe066'); txt('A 重新开始', 72, 174, 7.5, s1 ? '#ffffff' : '#ffe066', 'center'); hot('restart', 20, 164, 104, 20);
+        frame(132, 164, 104, 20, s1 ? '#3b2f63' : '#2c2447', s1 ? '#ffe066' : undefined); txt('B 回到标题', 184, 174, 7, s1 ? '#ffe066' : '#ffffff', 'center'); hot('endtitle', 132, 164, 104, 20); }
     }
   }
 

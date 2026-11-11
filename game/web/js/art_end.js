@@ -60,6 +60,9 @@
   S.dragon_w2 = S.dragon.slice(0, 18).concat(['...kEDkkEDk...kkDDkk..', '...kEEkkEEk.....kkDDk.', '...kkk.kkk........kkk.', '......................']);
   S.dragon_hurt = Array(4).fill('......................').concat(S.dragon.slice(0, 9), S.dragon.slice(13, 22));
   ART.kicked = { g: '#ff4d6d', G: '#ffe066', l: '#ffffff' };
+  // 小火龙 12×10（朝左，和龙王一样）
+  S.drake = ['...k.k......', '..kDkDk.....', '.kDDDDDk....', 'kDeDDDDDk.kk', 'kDDDDDDDkkMk',
+    '.kkLLDDDDDk.', '..kLLLDDDDk.', '..kDDDDDDk..', '..kEk.kEk...', '..kk..kk....'];
   ART.KINDS = {
     turtle: { walk1: 'turtle_walk1', walk2: 'turtle_walk2', jump: 'turtle_jump', hurt: 'turtle_hurt', plain: 'turtleP_walk1', plainHurt: 'turtleP_hurt',
       fx: null, minionPal: null },
