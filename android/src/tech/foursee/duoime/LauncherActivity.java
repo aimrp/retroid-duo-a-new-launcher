@@ -133,7 +133,17 @@ public class LauncherActivity extends Activity {
     if (c != null) { c.hide(WindowInsets.Type.systemBars()); c.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE); }
   }
 
-  @Override protected void onResume() { super.onResume(); cur = this; hideBars(); push(); }
+  @Override protected void onResume() { super.onResume(); cur = this; hideBars(); push(); main.removeCallbacks(watch); main.postDelayed(watch, 1000); }
+
+  // 播放状态变了（视频开播、音乐被系统暂停）上屏应用不会变，辅助功能也不会通知：每秒看一眼，变了才推给页面
+  private String lastState = "";
+  private final Runnable watch = new Runnable() {
+    @Override public void run() {
+      if (cur != LauncherActivity.this || isDestroyed()) return;
+      try { String s = state().toString(); if (!s.equals(lastState)) push(); } catch (Exception ignored) { }
+      main.postDelayed(this, 1000);
+    }
+  };
   // 焦点在不在下屏：辅助功能服务要把按键发给上屏时，靠这个判断。
   @Override public void onWindowFocusChanged(boolean hasFocus) {
     super.onWindowFocusChanged(hasFocus);
@@ -209,13 +219,24 @@ public class LauncherActivity extends Activity {
     String key = home ? "home" : pkg;
     String mode = home ? "bar" : MEDIA.contains(pkg) ? "media" : "pad";
     String kind = MUSIC.contains(pkg) ? "music" : VIDEO.contains(pkg) ? "video" : "other";
-    return new JSONObject().put("pkg", key).put("label", home ? "桌面" : label(pkg)).put("mode", mode)
+    String lbl = home ? "桌面" : label(pkg);
+    boolean bg = false;
+    // 上屏是播放器，但真正在响的是后台另一个（例：放着歌打开 B 站、视频还没开播）：转盘先控制在响的那个
+    if (MEDIA.contains(pkg)) {
+      android.media.session.MediaController c = MediaHub.pick(this);
+      String cp = c == null ? null : c.getPackageName();
+      if (cp != null && !cp.equals(pkg)) {
+        kind = MUSIC.contains(cp) ? "music" : "video";
+        lbl = label(cp); bg = true;
+      }
+    }
+    return new JSONObject().put("pkg", key).put("label", lbl).put("mode", mode).put("bg", bg)
         .put("mediaKind", kind).put("access", DuoAccess.inst != null);
   }
 
   void push() {
     if (!ready || web == null) return;
-    try { web.evaluateJavascript("window.dl && dl.state(" + state() + ")", null); } catch (Exception e) { Log.e(TAG, "push", e); }
+    try { String s = state().toString(); lastState = s; web.evaluateJavascript("window.dl && dl.state(" + s + ")", null); } catch (Exception e) { Log.e(TAG, "push", e); }
   }
 
   // ---------------------------------------------------------------- JS bridge

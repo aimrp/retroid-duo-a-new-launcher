@@ -61,7 +61,16 @@ final class MediaHub {
   static MediaController pick(Context c) {
     String top = DuoAccess.topPkg == null ? "" : DuoAccess.topPkg;
     List<MediaController> list = sessions(c);
-    if (MEDIA.contains(top)) { for (MediaController m : list) if (top.equals(m.getPackageName())) return m; return null; }
+    // 规则：控制“正在响的那个”。
+    //  1. 上屏播放器自己在播 → 它
+    //  2. 别的播放器在响（比如汽水音乐在后台放歌、刚打开 B 站还没开始放视频）→ 先控制在响的那个，
+    //     等上屏的视频真正开播（系统音频焦点会让音乐自己暂停）再切过去
+    //  3. 谁都没在响：上屏是播放器就是它（没会话返回 null）；否则是最近用过的音乐播放器
+    MediaController topM = null;
+    for (MediaController m : list) if (top.equals(m.getPackageName())) { topM = m; break; }
+    if (topM != null && isPlaying(topM)) return topM;
+    for (MediaController m : list) if (MEDIA.contains(m.getPackageName()) && isPlaying(m)) return m;
+    if (MEDIA.contains(top)) return topM;
     MediaController recent = null;
     for (MediaController m : list) {
       if (!MUSIC.contains(m.getPackageName())) continue;
