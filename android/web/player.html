@@ -103,7 +103,8 @@ html,body{margin:0;height:100%;overflow:hidden;color:var(--ink);font-family:"Not
 .deck .lab::after{content:"";position:absolute;left:50%;top:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;background:radial-gradient(#fff,#999);box-shadow:0 0 0 1px #555}
 .deck .arm{position:absolute;right:26px;top:6px;width:16px;height:300px;transform-origin:50% 22px;transform:rotate(-10deg);
  transition:transform .7s cubic-bezier(.3,.6,.3,1)}
-.deck.spin .arm{transform:rotate(19deg)}
+/* 播放时唱针按进度从外沿走到内沿：11°=最外圈，31°=贴纸外最内圈（--arm 由 paintProg 按进度设置） */
+.deck.spin .arm{transform:rotate(var(--arm,11deg))}
 
 .deck .arm::before{content:"";position:absolute;left:50%;top:0;width:44px;height:44px;margin-left:-22px;border-radius:50%;
  background:radial-gradient(circle at 40% 35%,#fff,#cfcdc7 55%,#8f8b84);box-shadow:0 0 0 1px #6e6b65,0 3px 6px rgba(0,0,0,.3)}
@@ -292,6 +293,7 @@ function paintProg(ms){
   const p = S.duration ? Math.min(1, ms / S.duration) : 0;
   $("fill").style.width = (p * 100) + "%"; $("knob").style.left = (p * 100) + "%";
   $("tpos").textContent = Lyric.mmss(ms);
+  const dk = $("deck"); if (dk) dk.style.setProperty("--arm", (11 + 20 * p).toFixed(2) + "deg");   // 唱臂跟着进度往里走
 }
 // 电量（播放页也藏了系统状态栏，所以自己画一个，和桌面同一套样式）
 function battery(){
