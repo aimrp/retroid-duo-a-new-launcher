@@ -95,9 +95,12 @@
   /** 移动一个刚体并与实体方块碰撞。返回 {hitX, headHit} */
   function moveBody(b, solids) {
     let hitX = false, headHit = null;
+    // 横向只处理“这一步横着撞上的”方块：本来就嵌在里面的（被踩高、变大等挤进去的）交给竖向推出，
+    // 否则会被按横向推到整块地板/天花板的尽头，甩出关卡外一直往下掉（第二关天花板下踩头的卡死 bug）
+    const inside = b.vx !== 0 ? solids.filter(s => overlap(b, s)) : [];
     b.x += b.vx;
     for (const s of solids) {
-      if (!overlap(b, s)) continue;
+      if (!overlap(b, s) || inside.includes(s)) continue;
       if (b.vx > 0) b.x = s.x - b.w; else if (b.vx < 0) b.x = s.x + s.w;
       else { // 静止时被挤入（如出生），按中心推出
         if (b.x + b.w / 2 < s.x + s.w / 2) b.x = s.x - b.w; else b.x = s.x + s.w;
@@ -222,6 +225,12 @@
       st.roundT++;
       const hi = (input && input.hero) || root.SH_AI.hero(st);
       stepHero(st, hi, solids);
+      // 兜底：勇者无论如何跑出了关卡（掉到地板下、甩到墙外），放回出生管口上面，不让对战卡死
+      if (h.y > H + 24 || h.x < -8 || h.x > W) {
+        Object.assign(h, { x: st.level.heroSpawn.x - h.w / 2 + 1, y: st.level.heroSpawn.y - h.h, vx: 0, vy: 0, onGround: false, inv: TUNE.spawnInv, spun: false });
+        st.ai = null;
+        puff(st, h.x + h.w / 2, h.y + h.h, 'puff');
+      }
     } else if (st.phase === 'heroDown') {
       h.deadT++;
       if (h.deadT > 24) { h.vy = Math.min(6, h.vy + 0.35); h.y += h.vy; }
@@ -287,7 +296,11 @@
       d.face = sd;
       const sx = sd > 0 ? d.x + d.w : d.x - 12;
       const DK = DEFENDERS[d.kind];
-      if (DK.fire) { // 龙：从嘴里吐出一团直飞的火球
+      if (d.kind === 'shroom') { // 菇菇长老：一次往前上方撒出三颗孢子，近距离抛物线，落地/撞墙就散，不会被踢回来
+        for (const [vx, vy] of [[1.5, -3.4], [2.1, -2.3], [2.6, -1.1]])
+          st.shells.push({ x: sd > 0 ? d.x + d.w - 2 : d.x - 5, y: d.y + 2, w: 7, h: 7, vx: sd * vx, vy, state: 'moving', spore: true, bounces: 0, life: 0, onGround: false, owner: 'def' });
+        ev(st, 'throw', d.x, d.y);
+      } else if (DK.fire) { // 龙：从嘴里吐出一团直飞的火球
         st.shells.push({ x: sd > 0 ? d.x + d.w - 2 : d.x - 10, y: d.y + 4, w: 12, h: 8, vx: sd * 3.4, vy: 0, state: 'moving', fire: true, bounces: 0, life: 0, onGround: false, owner: 'def' });
         ev(st, 'breath', d.x, d.y);
       } else {
@@ -355,6 +368,11 @@
       if (s.fire) { // 火球：直线飞，撞墙或飞太久就灭
         s.vy = 0; const r = moveBody(s, solids);
         if (r.hitX || s.life > 150) { s.gone = true; puff(st, s.x + 6, s.y + 4, 'spark', 14); }
+        continue;
+      }
+      if (s.spore) { // 孢子：轻飘飘的抛物线，碰到地面/墙/飞满一秒就散开
+        s.vy = Math.min(3, s.vy + 0.16); const r = moveBody(s, solids);
+        if (r.hitX || s.onGround || r.headHit || s.life > 60) { s.gone = true; puff(st, s.x + 3, s.y + 3, 'puff', 14); }
         continue;
       }
       if (s.state === 'still') { s.vx = 0; if (s.life > TUNE.shell.stillLife) s.gone = true; }
@@ -447,7 +465,9 @@
       if (d.inv <= 0) { hurtDef(st, 'star'); d.inv = 220; d.vx = Math.sign(d.x - h.x || 1) * 2.5; d.vy = -3; puff(st, d.x + d.w / 2, d.y + 6, 'star'); }
     } else if (!h.dead && !d.dead && overlap(h, d)) {
       if (isStomp(h, d)) {
-        h.y = d.y - h.h;
+        // 站到守关者头上；但别把勇者抬进天花板/方块里（守关者跳到天花板下面时会发生）
+        const ny = d.y - h.h, probe = { x: h.x, y: ny, w: h.w, h: h.h };
+        if (!st.solids.some(s => overlap(probe, s))) h.y = ny;
         heroBounce(h);
         if (d.dash > 0) { ev(st, 'clank', d.x, d.y); }
         else if (d.inv > 0) { ev(st, 'bounce', d.x, d.y); }
@@ -469,6 +489,11 @@
     for (const s of st.shells) {
       if (s.gone || !overlap(h, s)) continue;
       if (h.star > 0) { s.gone = true; puff(st, s.x + 6, s.y + 5, 'star'); ev(st, 'squish', s.x, s.y); continue; }
+      if (s.spore) { // 孢子：踩到就踩散，碰到就掉血；不会停下、也不会被踢回来
+        s.gone = true; puff(st, s.x + 3, s.y + 3, 'puff', 14);
+        if (isStomp(h, s)) heroBounce(h); else hurtHero(st, 'spore');
+        if (st.phase !== 'fight') return; continue;
+      }
       if (s.fire) { hurtHero(st, 'shell'); s.gone = true; puff(st, s.x + 6, s.y + 4, 'spark', 14); if (st.phase !== 'fight') return; continue; } // 火球踩不得
       if (isStomp(h, s) && s.state !== 'still') {
         s.state = 'still'; s.vx = 0; s.life = 0; heroBounce(h); h.kickGrace = 12; ev(st, 'stomp', s.x, s.y, { what: 'shell' });

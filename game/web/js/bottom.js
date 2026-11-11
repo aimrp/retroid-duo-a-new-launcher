@@ -208,7 +208,8 @@
   function drawResult() {
     const r = V.result || {}, g = V.g || {};
     const held = r.held != null ? r.held : 0;
-    txt('防线失守 · 公主被带走了', W / 2, 26, 12, '#ff8a8a', 'center');
+    const rl = !!r.retryLine;
+    txt(rl ? '防线失守 · 再守一次' : '防线失守 · 公主被带走了', W / 2, 26, 12, '#ff8a8a', 'center');
     frame(20, 44, 216, 56, '#2c2447');
     const st = r.stats || { stomps: 0, heroHits: 0 };
     txt(`这一局 ${r.runSecs || 0} 秒`, 34, 58, 7, '#ffffff', 'left', 700);
@@ -216,8 +217,8 @@
     txt(`被踩 ${st.stomps} 次`, 140, 58, 7, '#ffffff', 'left', 700);
     txt(`打中勇者 ${st.heroHits} 次`, 140, 74, 7, '#ffffff', 'left', 700);
     dots(W / 2, 116, 3);
-    txt('守住最后一道防线，公主就不会被救走。', W / 2, 140, 6.5, '#cfe8ff', 'center', 700);
-    frame(20, 152, 104, 26, '#3b2f63', '#ffe066'); txt('A 从第一关重开', 72, 165, 7.5, '#ffe066', 'center'); hot('restart', 20, 152, 104, 26);
+    txt(rl ? '前面守住的不作废，重守这一道就行。' : '守住最后一道防线，公主就不会被救走。', W / 2, 140, 6.5, '#cfe8ff', 'center', 700);
+    frame(20, 152, 104, 26, '#3b2f63', '#ffe066'); txt(rl ? 'A 重守这一关' : 'A 从第一关重开', 72, 165, 7.5, '#ffe066', 'center'); hot('restart', 20, 152, 104, 26);
     frame(132, 152, 104, 26, '#2c2447'); txt('B 回到标题', 184, 165, 7.5, '#ffffff', 'center'); hot('title', 132, 152, 104, 26);
   }
 

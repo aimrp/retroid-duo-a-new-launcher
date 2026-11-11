@@ -255,6 +255,13 @@
     }
     for (const s of st.shells) {
       if (s.fire) { spr((st.tick >> 2) % 2 ? 'dfire1' : 'dfire2', s.x, s.y, s.vx < 0); continue; }
+      if (s.spore) { // 孢子：一团紫色小绒球，带两个亮点，轻轻闪
+        const x = Math.round(s.x), y = Math.round(s.y), hi = (st.tick >> 3) % 2;
+        lx.fillStyle = '#3a1f4d'; lx.fillRect(x + 1, y, 5, 7); lx.fillRect(x, y + 1, 7, 5);
+        lx.fillStyle = hi ? '#d58cff' : '#b86ee6'; lx.fillRect(x + 1, y + 1, 5, 5);
+        lx.fillStyle = '#fff3c4'; lx.fillRect(x + 2, y + 2, 1, 1); lx.fillRect(x + 4, y + 4, 1, 1);
+        continue;
+      }
       const pal = s.state === 'kicked' ? ART.kicked : K.fx;
       const n = s.state === 'still' ? 'shell1' : ((st.tick >> 2) % 2 ? 'shell1' : 'shell2');
       if (s.state === 'still' && s.life > TUNE().shell.stillLife - 60 && (st.tick >> 2) % 2) continue;
@@ -523,7 +530,11 @@
         app.result.lost = (app.lines || []).map((v, i) => (v === 'lost' ? i : -1)).filter(i => i >= 0);
         app.result.held = heldCount();
         app.result.runSecs = app.runSecs;
-        if (!last) { // 前两关：守住或失守，都接着往下走
+        // 前面每一道防线都守住了、这一道失守：不往下走，就地重守这一道（前面赢下的不作废）
+        if (!app.result.win && app.level > 0 && (app.lines || []).slice(0, app.level).filter(v => v === 'held').length === app.level) {
+          app.result.retryLine = true; AU.stop(); AU.sfx('defeat'); go('result'); return;
+        }
+        if (!last) { // 前面已经丢过防线：守住或失守，都接着往下走
           if (app.result.win) { AU.stop(); AU.sfx('victory'); go('cleared'); }
           else { AU.stop(); AU.sfx('defeat'); go('breached'); }
           return;
@@ -813,7 +824,12 @@
     if ((t > 60 && (inp.pressed.A || inp.pressed.START)) || (DEMO && t > 260)) { AU.stop(); nextLevel(); }
   }
 
+  // 重守刚失守的这一道防线（前面守住的保留）
+  function retryLine() { app.retry++; go('levelIntro'); }
+  const LINE_CN = ['第一道防线', '第二道防线', '最后一道防线'];
+
   // ---------- 失败结局：最后一道防线破了，公主被救走，从第一关重来 ----------
+  // （retryLine：前面都守住了、只丢了这一道 → 不算结局，提示重守这一道）
   function sceneResult(inp) {
     if (app.t === 110) AU.playWaltz('dread');
     const r = app.result, g = app.game;
@@ -823,7 +839,8 @@
     if (app.t > 30) {
       if (inp.pressed.A || inp.pressed.START || (DEMO && app.t > 200)) {
         AU.sfx('confirm'); AU.stop();
-        if (DEMO) { app.lines = ['held', 'held', 'held']; app.beaten = 9; app.result.secs = app.runSecs; go('ending'); }
+        if (r.retryLine) retryLine();
+        else if (DEMO) { app.lines = ['held', 'held', 'held']; app.beaten = 9; app.result.secs = app.runSecs; go('ending'); }
         else startRun(); // 整局作废：从第一关重新开始
         return;
       }
@@ -831,6 +848,15 @@
     }
     SH.step(g, { def: {} });
     drawWorld(g, g.tick); dim(0.6);
+    if (r.retryLine) {
+      blit(0);
+      txt(LINE_CN[app.level] + '失守……', 160, 34, 17, '#ff8a8a', 'center');
+      txt('前面的防线你都守住了，勇者还被挡在这里——再守一次！', 160, 60, 7.5, '#ffffff', 'center', { weight: 700 });
+      txt(`这一局坚持了 ${r.runSecs || 0} 秒 · 三道防线守住了 ${held} 道`, 160, 80, 7, '#cfe8ff', 'center', { weight: 700 });
+      txt('提示：他从上方落下时按 B 缩壳——冲撞中被踩不掉血。', 160, 100, 7, '#cfe8ff', 'center', { weight: 600 });
+      txt('A 重守这一道防线     B 回到标题', 160, 140, 9, '#ffe066', 'center');
+      return;
+    }
     { const px = Math.max(-30, 300 - app.t * 0.7), wk = (app.t >> 3) % 2; // 勇者带着公主离开
       const gy = g.level.groundY || 156; spr(wk ? 'princess2' : 'princess', px + 16, gy - 22, true); spr(wk ? 'heroB_run' : 'heroB_stand', px, gy - 24, true, ART.firePal); }
     blit(0);
@@ -1191,7 +1217,7 @@
     else if (id === 'pause' && app.scene === 'play') { app.paused = !app.paused; app.pmenu = 0; AU.sfx('pause'); }
     else if (id.startsWith('pm:') && app.scene === 'play' && app.paused) { app.pmenu = +id.slice(3); pauseAction(app.pmenu); }
     else if (id === 'next' && app.scene === 'breached' && app.t > 60) { AU.stop(); nextLevel(); }
-    else if ((id === 'retry' || id === 'restart') && app.scene === 'result') { AU.sfx('confirm'); AU.stop(); startRun(); }
+    else if ((id === 'retry' || id === 'restart') && app.scene === 'result') { AU.sfx('confirm'); AU.stop(); if (app.result && app.result.retryLine) retryLine(); else startRun(); }
     else if (id === 'next' && app.scene === 'cleared' && app.t > clearedDone()) nextLevel();
     else if ((id === 'restart' || id === 'endtitle') && app.scene === 'ending' && app.t >= ET.restart && !app.leaving) { AU.fadeOut(2.5); app.leaving = 1; app.leaveTo = id === 'restart' ? 'run' : 'title'; }
     else if (id === 'title' && (app.scene === 'result' || app.scene === 'ending')) { AU.stop(); go('title'); }
