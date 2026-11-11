@@ -530,11 +530,11 @@
         app.result.lost = (app.lines || []).map((v, i) => (v === 'lost' ? i : -1)).filter(i => i >= 0);
         app.result.held = heldCount();
         app.result.runSecs = app.runSecs;
-        // 前面每一道防线都守住了、这一道失守：不往下走，就地重守这一道（前面赢下的不作废）
-        if (!app.result.win && app.level > 0 && (app.lines || []).slice(0, app.level).filter(v => v === 'held').length === app.level) {
+        // 只有最后一关：前两道防线都守住了、最后这道失守 → 就地重守最后一关（前两关不管输赢都照常往下走）
+        if (!app.result.win && last && (app.lines || []).slice(0, app.level).filter(v => v === 'held').length === app.level) {
           app.result.retryLine = true; AU.stop(); AU.sfx('defeat'); go('result'); return;
         }
-        if (!last) { // 前面已经丢过防线：守住或失守，都接着往下走
+        if (!last) { // 前两关：守住坐飞机/挖地道绕过去，失守勇者正常走过去，都接着往下一关
           if (app.result.win) { AU.stop(); AU.sfx('victory'); go('cleared'); }
           else { AU.stop(); AU.sfx('defeat'); go('breached'); }
           return;
