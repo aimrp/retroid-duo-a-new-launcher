@@ -69,6 +69,33 @@ public class DuoAccess extends AccessibilityService {
     h.postDelayed(scan, 400);
   }
 
+  /** 用户从我们的播放页点 MENU / 「返回汽水音乐」主动回到音乐 App 选歌：待在这个 App 里时不自动切回播放皮。 */
+  static volatile String stayPkg;
+  private Runnable musicWatch;
+
+  /**
+   * 音乐 App 到了上屏：等它界面起来、有了媒体会话，就自动换成我们的播放皮。
+   * 冷启动要几秒，所以每 0.5 秒看一次，最少等 1.2 秒（让它自己的界面先起来），最多等 15 秒；
+   * 15 秒内一直没有媒体会话（新装、从没播过）就留在它自己的界面，让用户先去选歌。
+   */
+  void watchMusic(String pkg) {
+    if (musicWatch != null) h.removeCallbacks(musicWatch);
+    final long t0 = SystemClock.uptimeMillis();
+    musicWatch = new Runnable() {
+      @Override public void run() {
+        if (!pkg.equals(topPkg) || pkg.equals(stayPkg)) return;   // 用户已经走开或主动留下
+        long dt = SystemClock.uptimeMillis() - t0;
+        if (dt >= 1200 && MediaHub.of(DuoAccess.this, pkg) != null) {
+          Log.e(TAG, "auto skin: " + pkg);
+          PlayerActivity.open(DuoAccess.this, pkg);
+          return;
+        }
+        if (dt < 15000) h.postDelayed(this, 500);
+      }
+    };
+    h.postDelayed(musicWatch, 500);
+  }
+
   private final Runnable scan = () -> {
     try { doScan(); } catch (Exception e) { Log.e(TAG, "scan", e); }
   };
@@ -97,6 +124,8 @@ public class DuoAccess extends AccessibilityService {
     if (!top.equals(topPkg)) {
       topPkg = top;
       Log.e(TAG, "top app: " + top);
+      if (!top.equals(stayPkg)) stayPkg = null;   // 离开了“用户主动回去选歌”的那个 App：下次打开照常自动切皮
+      if (MediaHub.MUSIC.contains(top) && stayPkg == null) watchMusic(top);
       LauncherActivity l = LauncherActivity.cur;
       if (l != null) l.push();
     }

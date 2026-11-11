@@ -299,6 +299,14 @@ public class LauncherActivity extends Activity {
         case "playpause": media(KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE); return true;
         case "next": if (PlayerActivity.step("next")) return true; media(KeyEvent.KEYCODE_MEDIA_NEXT); return true;   // 上屏是我们的播放页：让它走换唱片动画
         case "prev": if (PlayerActivity.step("prev")) return true; media(KeyEvent.KEYCODE_MEDIA_PREVIOUS); return true;
+        // 转盘 MENU：上屏是播放皮 → 回音乐 App 选歌；上屏是音乐 App → 换成播放皮
+        case "musicmenu":
+          if (PlayerActivity.backToApp()) return true;
+          { String p = DuoAccess.topPkg; if (p != null && MUSIC.contains(p)) { DuoAccess.stayPkg = null; PlayerActivity.open(LauncherActivity.this, p); return true; } }
+          return false;
+        // 视频（B 站等）没有上一首/下一首：转盘左右改成后退/快进 10 秒
+        case "seekfwd": return seekBy(10000);
+        case "seekback": return seekBy(-10000);
         case "ff": media(KeyEvent.KEYCODE_MEDIA_FAST_FORWARD); return true;
         case "rew": media(KeyEvent.KEYCODE_MEDIA_REWIND); return true;
       }
@@ -307,6 +315,21 @@ public class LauncherActivity extends Activity {
     }
 
     MediaController topController() { return MediaHub.pick(LauncherActivity.this); }
+
+    /** 相对跳转（毫秒）。播放器有媒体会话就直接 seek；没有就退回发快进/快退键。 */
+    boolean seekBy(long delta) {
+      MediaController c = topController();
+      android.media.session.PlaybackState st = c == null ? null : c.getPlaybackState();
+      if (st != null && (st.getActions() & android.media.session.PlaybackState.ACTION_SEEK_TO) != 0) {
+        long pos = Math.max(0, MediaHub.position(st) + delta);
+        android.media.MediaMetadata md = c.getMetadata();
+        long dur = md == null ? 0 : md.getLong(android.media.MediaMetadata.METADATA_KEY_DURATION);
+        if (dur > 0) pos = Math.min(pos, dur - 1000);
+        return MediaHub.control(c, "seek:" + pos);
+      }
+      media(delta > 0 ? KeyEvent.KEYCODE_MEDIA_FAST_FORWARD : KeyEvent.KEYCODE_MEDIA_REWIND);
+      return true;
+    }
 
     /** 液晶屏：当前歌曲 {has,label,playing,title,artist,duration,position,key}，没授权/没播放器时 has=false。 */
     @JavascriptInterface public String nowPlaying() {

@@ -143,7 +143,9 @@ const IC = {
   pause:'<path d="M9 5v14M15 5v14"/>',
   prev:'<path d="M5 5h2v14H5z"/><path d="M17 5l-8 7 8 7z"/>',
   next:'<path d="M17 5h2v14h-2z"/><path d="M7 5l8 7-8 7z"/>',
-  pp:'<path d="M3 6v12l8-6z"/><path d="M15 6v12M20 6v12"/>'
+  pp:'<path d="M3 6v12l8-6z"/><path d="M15 6v12M20 6v12"/>',
+  rew:'<path d="M12 6v12l-8-6z"/><path d="M21 6v12l-8-6z"/>',
+  ff:'<path d="M3 6v12l8-6z"/><path d="M12 6v12l8-6z"/>'
 };
 const svg = (n) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${IC[n]}</svg>`;
 
@@ -177,12 +179,12 @@ function renderBody(){
         <div class="gap"></div>
         <div class="vl"><span>音量</span><span id="lcdVn"></span></div>
         <div class="vb"><i id="lcdV"></i></div>
-        <div class="hint">${S.mediaKind === "video" ? "画圈调音量" : S.pkg === "player" ? "画圈调音量" : "点小屏：上屏打开播放页 · 画圈调音量"}</div>
+        <div class="hint">${S.mediaKind === "video" ? "左右：后退/快进 10 秒 · 画圈调音量" : S.pkg === "player" ? "MENU：回到音乐 App 选歌 · 画圈调音量" : "MENU 或点小屏：打开播放页 · 画圈调音量"}</div>
       </div>
       <div class="wheel" id="wheel">
         <div class="z t" data-z="t">MENU</div>
-        <div class="z l" data-z="l">${svg("prev")}</div>
-        <div class="z r" data-z="r">${svg("next")}</div>
+        <div class="z l" data-z="l">${svg(S.mediaKind === "video" ? "rew" : "prev")}</div>
+        <div class="z r" data-z="r">${svg(S.mediaKind === "video" ? "ff" : "next")}</div>
         <div class="z b" data-z="b">${svg("pp")}</div>
         <div class="hub" data-z="c" id="hub"></div>
       </div>
@@ -296,9 +298,9 @@ function bindWheel(){
     if (turned || e.type === "pointercancel") return;
     const z = zoneOf(geo(e));
     if (z === "c" || z === "b") togglePlay();
-    else if (z === "l") H.act("prev");
-    else if (z === "r") H.act("next");
-    else if (z === "t") { if (!H.act("back")) toast("需要开启“辅助功能”"); }
+    else if (z === "l") H.act(S.mediaKind === "video" ? "seekback" : "prev");
+    else if (z === "r") H.act(S.mediaKind === "video" ? "seekfwd" : "next");
+    else if (z === "t") { if (S.mediaKind === "music" && H.act("musicmenu")) return; if (!H.act("back")) toast("需要开启“辅助功能”"); }
   };
   w.addEventListener("pointerup", end); w.addEventListener("pointercancel", end);
 }

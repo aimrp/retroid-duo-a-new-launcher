@@ -124,6 +124,25 @@ public class PlayerActivity extends Activity {
     return MediaHub.pick(this);
   }
 
+  /** 下屏转盘 MENU：播放页 → 回到音乐 App 选歌。没有播放页时返回 false。 */
+  static boolean backToApp() {
+    PlayerActivity p = inst;
+    if (p == null || !visible) return false;
+    p.main.post(p::openMusicApp);
+    return true;
+  }
+
+  void openMusicApp() {
+    MediaController m = ctl();
+    String p = m != null ? m.getPackageName() : (pkg != null ? pkg : "com.luna.music");
+    Intent i = getPackageManager().getLaunchIntentForPackage(p);
+    if (i == null) return;
+    DuoAccess.stayPkg = p;   // 用户主动回去选歌：别马上又被自动切回播放皮
+    i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
+    try { startActivity(i, ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle()); }
+    catch (Exception e) { Log.e(TAG, "openApp", e); }
+  }
+
   // ---------------------------------------------------------------- JS bridge
   /** 下屏转盘点了上一首/下一首：交给页面走同一套“抬臂→换唱片→落下再播放”。 */
   static boolean step(String k) {
@@ -156,19 +175,8 @@ public class PlayerActivity extends Activity {
       }));
     }
 
-    /** 回到音乐 App 自己的界面去选歌单（选好按返回/主页，再点桌面上的图标回到这里）。 */
-    @JavascriptInterface public void openApp() {
-      main.post(() -> {
-        MediaController m = ctl();
-        String p = m != null ? m.getPackageName() : (pkg != null ? pkg : "com.luna.music");
-        PackageManager pm = getPackageManager();
-        Intent i = pm.getLaunchIntentForPackage(p);
-        if (i == null) return;
-        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_RESET_TASK_IF_NEEDED);
-        try { startActivity(i, ActivityOptions.makeBasic().setLaunchDisplayId(Display.DEFAULT_DISPLAY).toBundle()); }
-        catch (Exception e) { Log.e(TAG, "openApp", e); }
-      });
-    }
+    /** 回到音乐 App 自己的界面去选歌单（选好后点下屏转盘的 MENU，或桌面上的图标回到这里）。 */
+    @JavascriptInterface public void openApp() { main.post(PlayerActivity.this::openMusicApp); }
 
     private int savedVol = -1;
     /** 切歌期间把媒体音量压到 0（on=true），唱臂落下后恢复（on=false）。重复调用安全。 */
