@@ -1,4 +1,4 @@
-/* STOP · The Stompers · 8-bit 音效与原创配乐（WebAudio 现场合成，无音频文件） */
+/* 进击的 NPC · 8-bit 音效与原创配乐（WebAudio 现场合成，无音频文件） */
 (function (root) {
   'use strict';
   let ctx = null, master = null, musicGain = null, sfxGain = null, musicOn = (typeof localStorage === 'undefined' || localStorage.getItem('sh_music') !== '0'), timer = null, song = null, songStep = 0, nextTime = 0;

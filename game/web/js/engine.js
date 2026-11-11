@@ -1,4 +1,4 @@
-/* STOP · The Stompers · 游戏核心逻辑（纯逻辑，无 DOM）。浏览器与 Node 模拟器共用。
+/* 进击的 NPC · 游戏核心逻辑（纯逻辑，无 DOM）。浏览器与 Node 模拟器共用。
  * 坐标：逻辑分辨率 320×180，60 帧/秒定步长。速度单位 px/帧。 */
 (function (root) {
   'use strict';
@@ -608,7 +608,7 @@
   }
 
   // 游戏名只在这里改
-  root.SH_TITLE = { main: 'STOP', sub: 'Marios', full: 'STOP · Marios', cn: '抵御像马里奥一样的英雄们' };
+  root.SH_TITLE = { cn: '抵御像马里奥一样的英雄们', name: '进击的 NPC', en: 'Fend off the Mario-like heroes', enName: 'NPCs Strike Back' };
 
   root.SH = { W, H, T, TUNE, LEVELS, DEFENDERS, HERO_FORMS, createGame, step, moveBody, applyGravity, overlap, makeRng };
 })(typeof window !== 'undefined' ? window : globalThis);

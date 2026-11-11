@@ -1,4 +1,4 @@
-/* STOP · The Stompers · 输入：掌机原生按键（APK 转发）/ 浏览器手柄 / 键盘
+/* 进击的 NPC · 输入：掌机原生按键（APK 转发）/ 浏览器手柄 / 键盘
  * 按钮按"位置"命名：A=右  B=下  X=上  Y=左（与掌机丝印一致） */
 (function (root) {
   'use strict';

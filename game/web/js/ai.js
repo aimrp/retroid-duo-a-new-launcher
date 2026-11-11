@@ -1,4 +1,4 @@
-/* STOP · The Stompers · AI
+/* 进击的 NPC · AI
  * SH_AI.hero(st)     勇者 AI：躲壳/甲虫、抢问号块变强、预测抛物线去踩守关者、火焰形态远程放火球
  * SH_AI.defender(st) 守关者机器人：只给模拟器调平衡和标题画面演示用，玩家实际自己操作 */
 (function (root) {

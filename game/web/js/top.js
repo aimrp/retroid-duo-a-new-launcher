@@ -1,4 +1,4 @@
-/* STOP · The Stompers · 上屏：主游戏、开场动画、标题、选角、结算。游戏状态由上屏主导，下屏只显示与点选。 */
+/* 进击的 NPC · 上屏：主游戏、开场动画、标题、选角、结算。游戏状态由上屏主导，下屏只显示与点选。 */
 (function () {
   'use strict';
   const SH = window.SH, ART = window.ART, AU = window.AUDIO, IN = window.INPUT, LINK = window.LINK;
@@ -397,20 +397,17 @@
     s = I18N.tr(s, LANG); speed = (speed || 4) * (LANG === 'en' ? 0.4 : 1);
     const n = Math.max(0, Math.floor((t - t0) / speed)); return s.slice(0, n);
   }
-  // 标题字：中文版用中文长名做大字；英文版保留代码里的 STOP / 副名，下面加 NPCs Strike Back
+  // 标题字：上面一行小字副标题，下面一行大字游戏名（中文《进击的 NPC》/ 英文 NPCs Strike Back）
   function titleArt(y, t0) {
-    if (LANG === 'en') {
-      const L1 = pixelText(TITLE.main, 30, '#ffe066', '#1a1426'), L2 = pixelText(TITLE.sub, 20, '#ffffff', '#1a1426');
-      lx.drawImage(L1, Math.round(W / 2 - L1.width / 2), Math.round(y));
-      if (t0 > 10) lx.drawImage(L2, Math.round(W / 2 - L2.width / 2), Math.round(y + 38));
-    } else {
-      const L1 = pixelText(TITLE.cn, 18, '#ffffff', '#1a1426'), L2 = pixelText('进击的 NPC', 30, '#ffe066', '#1a1426');
+    {
+      const en = LANG === 'en';
+      const L1 = pixelText(en ? TITLE.en : TITLE.cn, en ? 15 : 18, '#ffffff', '#1a1426'), L2 = pixelText(en ? TITLE.enName : TITLE.name, en ? 26 : 30, '#ffe066', '#1a1426');
       lx.drawImage(L1, Math.round(W / 2 - L1.width / 2), Math.round(y + 2));
       if (t0 > 10) lx.drawImage(L2, Math.round(W / 2 - L2.width / 2), Math.round(y + 28));
     }
     if (t0 > 22) { lx.fillStyle = '#e0344c'; lx.fillRect(Math.round(W / 2 - 60), Math.round(y + 64), 120, 3); }
   }
-  function titleSub(y) { if (LANG === 'en') txt('NPCs Strike Back', 160, y, 10, '#ffffff', 'center', { raw: true }); }
+  function titleSub(y) { } // 游戏名已在大标题里，不再重复
 
   // ---------- 设置（语言 / 音乐 / 返回）；从标题进入，默认中文 ----------
   function setLang(l) { LANG = l; I18N.set(l); }

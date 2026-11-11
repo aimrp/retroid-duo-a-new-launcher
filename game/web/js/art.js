@@ -1,4 +1,4 @@
-/* STOP · The Stompers · 像素美术（全部原创，字符画 → 离屏画布） */
+/* 进击的 NPC · 像素美术（全部原创，字符画 → 离屏画布） */
 (function (root) {
   'use strict';
   const PAL = {

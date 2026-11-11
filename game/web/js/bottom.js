@@ -1,4 +1,4 @@
-/* STOP · The Stompers · 下屏：指挥台（双方状态、技能冷却、关卡进度）、菜单可触摸点选 */
+/* 进击的 NPC · 下屏：指挥台（双方状态、技能冷却、关卡进度）、菜单可触摸点选 */
 (function () {
   'use strict';
   const ART = window.ART, LINK = window.LINK, SH = window.SH;
@@ -77,11 +77,10 @@
     }
   }
 
-  // 标题两行：中文版是“名字：进击的 NPC”，英文版是代码里的 STOP 名 + NPCs Strike Back
+  // 标题两行：上面小字副标题，下面游戏名（中文《进击的 NPC》/ 英文 NPCs Strike Back）
   function titleLines(y) {
-    const T = window.SH_TITLE;
-    if (V.lang === 'en') { txtRaw(T.full, W / 2, y, 11, '#ffe066'); txtRaw('NPCs Strike Back', W / 2, y + 14, 7, '#cfe8ff'); }
-    else { txtRaw(T.cn, W / 2, y, 9, '#ffffff'); txtRaw('进击的 NPC', W / 2, y + 14, 10, '#ffe066'); }
+    const T = window.SH_TITLE, en = V.lang === 'en';
+    txtRaw(en ? T.en : T.cn, W / 2, y, en ? 7.5 : 9, '#ffffff'); txtRaw(en ? T.enName : T.name, W / 2, y + 14, 10, '#ffe066');
   }
   function txtRaw(s, x, y, size, color, align) { const l = V.lang; V.lang = 'zh'; txt(s, x, y, size, color, align || 'center'); V.lang = l; }
   // 竖向菜单项：高亮由 V.menu 决定，touch 与摇杆共用同一高亮

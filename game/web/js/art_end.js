@@ -1,4 +1,4 @@
-/* STOP · 结局用的像素美术：公主、小精灵、银甲骑士配色（全部原创） */
+/* 进击的 NPC · 结局用的像素美术：公主、小精灵、银甲骑士配色（全部原创） */
 (function (root) {
   'use strict';
   const ART = root.ART, S = ART.S, PAL = ART.PAL;
