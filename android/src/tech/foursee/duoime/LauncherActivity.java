@@ -70,7 +70,7 @@ public class LauncherActivity extends Activity {
     // 之前这里加了 FLAG_NOT_FOCUSABLE，于是 display 2 上「有前台应用、却没有焦点窗口」：
     // 系统往这块屏派发触摸时找不到目标窗口，5 秒后直接判 ANR，桌面就弹出「Agent Deck 没有响应」。
     // FLAG_ALT_FOCUSABLE_IM：窗口能拿焦点、收按键，但不当输入法的目标，上屏输入框照旧用下屏键盘。
-    w.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON | WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM);
+    w.addFlags(WindowManager.LayoutParams.FLAG_ALT_FOCUSABLE_IM);   // 常亮不再写死，见 keepAwake()
     w.getDecorView().setBackgroundColor(Color.parseColor("#d3d0c9"));
     WebView.setWebContentsDebuggingEnabled(true);
     web = new WebView(this);
@@ -141,9 +141,26 @@ public class LauncherActivity extends Activity {
     @Override public void run() {
       if (cur != LauncherActivity.this || isDestroyed()) return;
       try { String s = state().toString(); if (!s.equals(lastState)) push(); } catch (Exception ignored) { }
+      keepAwake();
       main.postDelayed(this, 1000);
     }
   };
+  /**
+   * 自动熄屏：下屏面板一直在显示，它的窗口常亮会让整台机器都不熄屏。
+   * 规则：有任何播放器（音乐 / 视频）正在播放 → 保持常亮；什么都没在播 → 清掉，交给系统设置的熄屏时间。
+   * 用户主动按电源键锁屏不受影响。
+   */
+  private boolean awake;
+  void keepAwake() {
+    boolean playing = false;
+    try { for (android.media.session.MediaController m : MediaHub.sessions(this)) if (MediaHub.isPlaying(m)) { playing = true; break; } } catch (Exception ignored) { }
+    if (playing == awake) return;
+    awake = playing;
+    if (playing) getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    else getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    Log.e(TAG, "keep screen on: " + playing);
+  }
+
   // 焦点在不在下屏：辅助功能服务要把按键发给上屏时，靠这个判断。
   @Override public void onWindowFocusChanged(boolean hasFocus) {
     super.onWindowFocusChanged(hasFocus);

@@ -52,7 +52,7 @@ public class PlayerActivity extends Activity {
     super.onCreate(b);
     pkg = getIntent().getStringExtra("pkg");
     Window w = getWindow();
-    w.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    // 常亮由下屏 LauncherActivity 按“是否正在播放”统一控制（暂停后按系统熄屏时间熄屏）
     w.getDecorView().setBackgroundColor(Color.parseColor("#5d708e"));
     WebView.setWebContentsDebuggingEnabled(true);
     web = new WebView(this);

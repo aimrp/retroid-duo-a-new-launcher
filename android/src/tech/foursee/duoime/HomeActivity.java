@@ -53,7 +53,7 @@ public class HomeActivity extends Activity {
     super.onCreate(b);
     pm = getPackageManager();
     Window w = getWindow();
-    w.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    // 不再强制常亮：熄屏走系统设置；有东西在播放时由下屏 LauncherActivity 统一保持常亮
     w.getDecorView().setBackgroundColor(Color.parseColor("#6f7d93"));
     WebView.setWebContentsDebuggingEnabled(true);
     web = new WebView(this);
