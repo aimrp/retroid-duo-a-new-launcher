@@ -36,7 +36,7 @@ html,body{margin:0;height:100%;overflow:hidden;color:var(--ink);font-family:"Not
 .title .box{flex:none;width:12px;height:12px;border:1px solid #57544f;border-radius:2px;background:linear-gradient(135deg,#fff,#c6c3bc);box-shadow:inset 1px 1px 0 #fff}
 .title .name{flex:none;font-size:13px;font-weight:700;padding:0 6px;letter-spacing:.3px}
 .content{flex:1;min-height:0;position:relative;background:var(--paper);box-shadow:inset 0 1px 3px rgba(0,0,0,.16)}
-#pages{position:absolute;inset:0;display:flex;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none}
+#pages{position:absolute;inset:0;display:flex;overflow-x:auto;overflow-y:hidden;scrollbar-width:none;touch-action:none}
 #pages::-webkit-scrollbar{display:none}
 .page{flex:none;width:100%;height:100%;scroll-snap-align:start;display:grid;
  grid-template-columns:repeat(5,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:2px 8px;padding:10px 14px 6px}
@@ -48,6 +48,10 @@ html,body{margin:0;height:100%;overflow:hidden;color:var(--ink);font-family:"Not
 .cell.down span{background:var(--sel);color:#fff}
 .cell.selected{border-radius:7px;background:rgba(44,86,201,.09);outline:2px solid var(--sel);outline-offset:-2px}
 .cell.selected span{background:var(--sel);color:#fff}
+.cell.drag-source{opacity:.35}
+.cell.drop-target{outline:2px dashed var(--sel);outline-offset:-3px;border-radius:7px;background:rgba(44,86,201,.09)}
+.drag-ghost{position:fixed;z-index:10;pointer-events:none;transform:translate(-50%,-50%);width:100px;height:120px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;filter:drop-shadow(0 5px 7px rgba(0,0,0,.35));opacity:.9}
+.drag-ghost .icon{width:80px;height:80px;flex:none}.drag-ghost span{font-size:12px;padding:1px 5px;border-radius:3px;background:var(--sel);color:#fff;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis}
 
 /* 状态栏 */
 .status{flex:none;height:22px;display:flex;align-items:center;padding:0 10px;font-size:11.5px;color:var(--ink2);
@@ -71,11 +75,12 @@ html,body{margin:0;height:100%;overflow:hidden;color:var(--ink);font-family:"Not
   <div class="win">
     <div class="title"><i class="box"></i><i class="stripes"></i><span class="name">应用程序</span><i class="stripes"></i><i class="box"></i></div>
     <div class="content"><div id="pages"></div></div>
-    <div class="status"><span class="l" id="count"></span><div class="dots" id="dots"></div><span class="r">摇杆 / 十字键选择 · A 打开</span></div>
+    <div class="status"><span class="l" id="count"></span><div class="dots" id="dots"></div><span class="r" id="hint">摇杆选择 · A 打开 · 长按拖动排序</span></div>
   </div>
 </div>
 <script src="icons.js"></script>
 <script src="home-nav.js"></script>
+<script src="home-order.js"></script>
 <script>
 const H = window.DuoHome, $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -191,14 +196,15 @@ function layout(apps){
   for (let i = 0; i < per * n; i++) {
     const a = apps[i];
     cells.push(a
-      ? `<div class="cell" data-pkg="${esc(a.pkg)}"><div class="icon" data-ic="${i}"></div><span>${esc(a.label)}</span></div>`
-      : `<div class="cell"></div>`);
+      ? `<div class="cell" data-index="${i}" data-pkg="${esc(a.pkg)}"><div class="icon" data-ic="${i}"></div><span>${esc(a.label)}</span></div>`
+      : `<div class="cell" data-index="${i}"></div>`);
   }
   let html = "";
   for (let p = 0; p < n; p++) html += `<div class="page">` + cells.slice(p * per, (p + 1) * per).join("") + `</div>`;
   pages.innerHTML = html;
   $("count").textContent = apps.length + " 个项目";
-  $("dots").innerHTML = n > 1 ? Array.from({length:n}, (_,i)=>`<i class="${i===0?"on":""}"></i>`).join("") : "";
+  const page = Math.min(n-1, Math.round(pages.scrollLeft / Math.max(1,pages.clientWidth)));
+  $("dots").innerHTML = n > 1 ? Array.from({length:n}, (_,i)=>`<i class="${i===page?"on":""}"></i>`).join("") : "";
   apps.forEach((a,i) => {
     const box = pages.querySelector(`[data-ic="${i}"]`);
     if (!box) return;
@@ -216,30 +222,16 @@ function bindDots(){
   }, {passive:true});
 }
 
+function drawApps(apps){
+  if (!apps.length) { $("pages").innerHTML = `<div class="empty">没有找到可显示的应用</div>`; $("dots").innerHTML=""; $("count").textContent="0 个项目"; return; }
+  layout(apps); bindDots(); homeNav.refresh();
+}
 function render(){
   let apps;
   try { apps = JSON.parse(H.apps()); } catch(e) { apps = []; }
-  if (!apps.length) { $("pages").innerHTML = `<div class="empty">没有找到可显示的应用</div>`; $("dots").innerHTML=""; return; }
-  layout(apps); bindDots(); homeNav.refresh();
+  drawApps(homeOrder.update(apps));
 }
-
-// 点击保持原来的触屏操作；横滑翻页不能误打开图标。
-let press = null;
-function clearPress(){ press = null; document.querySelectorAll(".down").forEach(x=>x.classList.remove("down")); }
-document.addEventListener("pointerdown", (e)=>{
-  const c = e.target.closest(".cell[data-pkg]");
-  if(c){ press = {c, x:e.clientX, y:e.clientY, id:e.pointerId}; c.classList.add("down"); }
-});
-document.addEventListener("pointermove", (e)=>{
-  if(press && (Math.abs(e.clientX-press.x)>12 || Math.abs(e.clientY-press.y)>12)) clearPress();
-});
-document.addEventListener("pointerup", (e)=>{
-  const p = press; clearPress();
-  const c = e.target.closest(".cell[data-pkg]");
-  if(p && p.id===e.pointerId && c===p.c && Math.abs(e.clientX-p.x)<=12 && Math.abs(e.clientY-p.y)<=12) H.launch(c.dataset.pkg);
-});
-document.addEventListener("pointercancel", clearPress);
-
+homeOrder.init(drawApps, $("hint"));
 DeckIcons.mount(); render(); H.ready();
 </script>
 </body></html>

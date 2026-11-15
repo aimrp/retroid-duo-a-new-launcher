@@ -64,7 +64,7 @@ fi
 # ---- 资源：键盘界面和模拟器共用 keyboard/ 下的文件
 rm -rf build && mkdir -p build/classes build/dex build/assets/web
 cp ../keyboard/keyboard.js ../keyboard/keyboard.css ../keyboard/engine.js ../keyboard/voice-siliconflow.js ../keyboard/dict.js \
-   web/ime.html web/launcher.html web/home.html web/home-nav.js web/player.html web/lyric.js web/icons.js web/mochi.png build/assets/web/
+   web/ime.html web/launcher.html web/home.html web/home-nav.js web/home-order.js web/player.html web/lyric.js web/icons.js web/mochi.png build/assets/web/
 
 # ---- 把 config.local.json 里给 App 用的几项写进 assets/config.json（只挑白名单里的、非空的）
 "$PY" -I - "$CFG" build/assets/config.json <<'PYEOF'

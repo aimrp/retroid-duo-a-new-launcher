@@ -27,6 +27,7 @@
   }
   window.homeNav = {
     move(dir) {
+      if (window.homeOrder && window.homeOrder.isDragging()) return;
       const all = cells(); if (!all.length) return;
       active = true; sync();
       const i = all.indexOf(selected); if (i < 0) return;
@@ -53,6 +54,7 @@
       select(all[target], true);
     },
     open() {
+      if (window.homeOrder && window.homeOrder.isDragging()) return;
       active = true; sync(); paint(selected);
       if (selected) window.DuoHome.launch(selected.dataset.pkg);
     },
