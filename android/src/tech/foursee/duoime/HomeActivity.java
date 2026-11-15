@@ -46,6 +46,39 @@ public class HomeActivity extends Activity {
   private final Handler main = new Handler(Looper.getMainLooper());
   private WebView web;
   private boolean ready;
+  static volatile boolean visible;
+  static volatile HomeActivity inst;
+  private final HomeInput input = new HomeInput();
+
+  static boolean canNavigate() {
+    HomeActivity h = inst;
+    return h != null && visible && (DuoAccess.inst == null || h.getPackageName().equals(DuoAccess.topPkg));
+  }
+
+  static void navigate(String cmd) {
+    HomeActivity h = inst;
+    if (h == null || !canNavigate()) return;
+    h.main.post(() -> {
+      if (!h.ready || h.web == null || !canNavigate()) return;
+      h.web.evaluateJavascript("window.homeNav && homeNav." +
+          (cmd.equals("open") ? "open()" : "move(" + JSONObject.quote(cmd) + ")"), null);
+    });
+  }
+
+  @Override protected void onStart() { super.onStart(); inst = this; visible = true; }
+  @Override protected void onStop() {
+    if (inst == this) { inst = null; visible = false; }
+    input.reset(); super.onStop();
+  }
+  @Override public void onWindowFocusChanged(boolean focus) {
+    super.onWindowFocusChanged(focus); if (!focus) input.reset();
+  }
+  @Override public boolean dispatchKeyEvent(android.view.KeyEvent e) {
+    return input.key(e) || super.dispatchKeyEvent(e);
+  }
+  @Override public boolean dispatchGenericMotionEvent(android.view.MotionEvent e) {
+    return input.motion(e) || super.dispatchGenericMotionEvent(e);
+  }
   private PackageManager pm;
   private BroadcastReceiver pkgReceiver;
 

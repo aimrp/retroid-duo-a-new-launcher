@@ -41,6 +41,12 @@ import org.json.JSONObject;
 public class LauncherActivity extends Activity {
   static final String TAG = "DuoLauncher";
   static volatile LauncherActivity cur;
+  private final HomeInput homeInput = new HomeInput();
+
+  @Override public boolean dispatchGenericMotionEvent(MotionEvent e) {
+    if (HomeActivity.canNavigate() && homeInput.motion(e)) return true;
+    return super.dispatchGenericMotionEvent(e);
+  }
   /** 这个面板当前挂在哪块屏上（下屏 = 2），给辅助功能服务判断要不要重新拉起来。 */
   static volatile int onDisplay = -1;
   /** 这个面板现在有没有拿着输入焦点。用户一点下屏，焦点就落到这里，系统注入的按键也会被这里吃掉。 */
@@ -165,9 +171,11 @@ public class LauncherActivity extends Activity {
   @Override public void onWindowFocusChanged(boolean hasFocus) {
     super.onWindowFocusChanged(hasFocus);
     focused = hasFocus;
+    if (!hasFocus) homeInput.reset();
   }
   // 活动被重建时（换屏、重启任务）旧的 WebView 必须销毁：留着会一直占着渲染进程，CPU 一路飙上去。
   @Override protected void onDestroy() {
+    homeInput.reset();
     if (cur == this) cur = null;
     focused = false;
     if (web != null) { try { web.destroy(); } catch (Exception ignored) { } web = null; }
@@ -180,6 +188,7 @@ public class LauncherActivity extends Activity {
    * （系统往有焦点的窗口发按键，焦点在下屏时上屏收不到，所以这里要显式转过去。）
    */
   @Override public boolean dispatchKeyEvent(KeyEvent e) {
+    if (HomeActivity.canNavigate() && homeInput.key(e)) return true;
     if (e.getAction() == KeyEvent.ACTION_DOWN) {
       DuoAccess a = DuoAccess.inst;
       switch (e.getKeyCode()) {

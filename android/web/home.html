@@ -46,6 +46,8 @@ html,body{margin:0;height:100%;overflow:hidden;color:var(--ink);font-family:"Not
 .cell span{max-width:100%;font-size:13px;line-height:18px;padding:0 6px;border-radius:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cell.down .icon{filter:brightness(.6)}
 .cell.down span{background:var(--sel);color:#fff}
+.cell.selected{border-radius:7px;background:rgba(44,86,201,.09);outline:2px solid var(--sel);outline-offset:-2px}
+.cell.selected span{background:var(--sel);color:#fff}
 
 /* 状态栏 */
 .status{flex:none;height:22px;display:flex;align-items:center;padding:0 10px;font-size:11.5px;color:var(--ink2);
@@ -69,10 +71,11 @@ html,body{margin:0;height:100%;overflow:hidden;color:var(--ink);font-family:"Not
   <div class="win">
     <div class="title"><i class="box"></i><i class="stripes"></i><span class="name">应用程序</span><i class="stripes"></i><i class="box"></i></div>
     <div class="content"><div id="pages"></div></div>
-    <div class="status"><span class="l" id="count"></span><div class="dots" id="dots"></div><span class="r">左右滑动翻页</span></div>
+    <div class="status"><span class="l" id="count"></span><div class="dots" id="dots"></div><span class="r">摇杆 / 十字键选择 · A 打开</span></div>
   </div>
 </div>
 <script src="icons.js"></script>
+<script src="home-nav.js"></script>
 <script>
 const H = window.DuoHome, $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
@@ -217,19 +220,25 @@ function render(){
   let apps;
   try { apps = JSON.parse(H.apps()); } catch(e) { apps = []; }
   if (!apps.length) { $("pages").innerHTML = `<div class="empty">没有找到可显示的应用</div>`; $("dots").innerHTML=""; return; }
-  layout(apps); bindDots();
+  layout(apps); bindDots(); homeNav.refresh();
 }
 
-// 点击：按下时图标变暗、名字反白（老 Mac 的选中样子）
+// 点击保持原来的触屏操作；横滑翻页不能误打开图标。
+let press = null;
+function clearPress(){ press = null; document.querySelectorAll(".down").forEach(x=>x.classList.remove("down")); }
 document.addEventListener("pointerdown", (e)=>{
-  const t = e.target.closest(".cell"); if(t && t.dataset.pkg) t.classList.add("down");
+  const c = e.target.closest(".cell[data-pkg]");
+  if(c){ press = {c, x:e.clientX, y:e.clientY, id:e.pointerId}; c.classList.add("down"); }
+});
+document.addEventListener("pointermove", (e)=>{
+  if(press && (Math.abs(e.clientX-press.x)>12 || Math.abs(e.clientY-press.y)>12)) clearPress();
 });
 document.addEventListener("pointerup", (e)=>{
-  document.querySelectorAll(".down").forEach(x=>x.classList.remove("down"));
-  const c = e.target.closest(".cell");
-  if(c && c.dataset.pkg){ H.launch(c.dataset.pkg); return; }
+  const p = press; clearPress();
+  const c = e.target.closest(".cell[data-pkg]");
+  if(p && p.id===e.pointerId && c===p.c && Math.abs(e.clientX-p.x)<=12 && Math.abs(e.clientY-p.y)<=12) H.launch(c.dataset.pkg);
 });
-document.addEventListener("pointercancel", ()=>document.querySelectorAll(".down").forEach(x=>x.classList.remove("down")));
+document.addEventListener("pointercancel", clearPress);
 
 DeckIcons.mount(); render(); H.ready();
 </script>
