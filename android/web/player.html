@@ -44,7 +44,8 @@ html,body{margin:0;height:100%;overflow:hidden;color:var(--ink);font-family:"Not
 .meta{flex:1;min-width:0;display:flex;flex-direction:column}
 .song{font-size:22px;font-weight:700;line-height:1.25;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}
 .artist{font-size:14px;color:var(--ink2);margin-top:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.album{font-size:12px;color:var(--ink2);margin-top:2px;opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cred{font-size:12.5px;color:var(--ink2);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cred:empty{display:none}
 .grow{flex:1;min-height:8px}
 /* 进度条：像老 Mac 的滚动条 */
 .prog{height:22px;position:relative;touch-action:none;display:flex;align-items:center}
@@ -155,8 +156,9 @@ function buildMain(){
           <div class="cover" id="cover">${svg("note")}</div>
           <div class="meta">
             <div class="song" id="song"></div>
-            <div class="artist" id="artist"></div>
-            <div class="album" id="album"></div>
+            <div class="artist" id="author"></div>
+            <div class="cred" id="lyricist"></div>
+            <div class="cred" id="composer"></div>
           </div>
         </div>
         <div class="grow"></div>
@@ -195,19 +197,22 @@ function render(){
     key = S.key;
     if (!first) changeRecord(); lines = []; cur = -2; lastSec = -1;
     $("song").textContent = S.title || "未知歌曲";
-    $("artist").textContent = S.artist || "";
-    $("album").textContent = S.album || "";
+    $("author").textContent = S.artist ? "作者：" + S.artist : "";
+    $("lyricist").textContent = ""; $("composer").textContent = "";
     const a = H.art(), c = $("cover");
     c.style.backgroundImage = a ? `url("${a}")` : ""; c.classList.toggle("has", !!a);
     if (first) $("lab").style.backgroundImage = c.style.backgroundImage;
     const k0 = key; for (const ms of [700, 1600, 3000]) setTimeout(() => { if (key !== k0) return; const a2 = H.art(); if (!a2) return; const u = `url("${a2}")`; if (c.style.backgroundImage !== u) { c.style.backgroundImage = u; c.classList.add("has"); if (!swapping) $("lab").style.backgroundImage = u; } }, ms);
     $("lines").innerHTML = ""; $("lines").style.transform = ""; $("lyr").classList.remove("plain");
-    // QQ 音乐开了"车载歌词"：先用它实时给的这句歌词（live），lrclib 查到带时间轴的整篇再换成整篇滚动
-    live = S.lyricMode ? [] : null; liveLast = "";
-    lmsg(live ? "" : "正在找歌词…");
-    if (S.title) H.lyrics(key, S.title, S.artist || "", S.album || "", S.duration || 0);
+    // 歌词：优先汽水音乐实时推送的这句（live），没有实时歌词才去网上（lrclib）找整篇
+    live = null; liveLast = "";
+    lmsg("正在找歌词…");
+    if (S.title) { H.songInfo(key, S.title, S.artist || ""); H.lyrics(key, S.title, S.artist || "", S.album || "", S.duration || 0); }
   }
-  if (live && S.line && S.line !== liveLast) liveLine(S.line);
+  if (S.line) {
+    if (!live) { live = []; $("lines").innerHTML = ""; $("lines").style.transform = ""; lines = []; cur = -2; lmsg(""); }
+    if (S.line !== liveLast) liveLine(S.line);
+  }
   const want = S.playing ? "pause" : "play";
   if (want !== ppState) { ppState = want; $("pp").innerHTML = svg(want); }   // 重建 SVG 很贵，状态没变就别动
   setT($("tdur"), Lyric.mmss(S.duration));
@@ -308,15 +313,19 @@ window.pl = {
   step(k){ step(k); },
   lyrics(id, lrc){
     if (id !== key) return;
+    if (live) return;                            // 实时歌词已经来了，网上查到的整篇不用
     cur = -2;
-    const synced = Lyric.parse(lrc).filter((l) => l.text);
-    if (live && !synced.length) return;          // 没有整篇时间轴：继续用 QQ 音乐实时给的那句
-    if (synced.length) live = null;
     lines = Lyric.parse(lrc).filter((l) => l.text);
     if (!lines.length) { lmsg("这首歌没有歌词 · 听歌吧"); return; }
     lmsg("");
     $("lines").innerHTML = lines.map((l, i) => `<div class="ln" data-i="${i}"><span>${esc(l.text)}</span></div>`).join("");
     tick();
+  },
+  songInfo(id, info){
+    if (id !== key) return;
+    let v; try { v = JSON.parse(info); } catch(e) { return; }
+    if (v.lyricist) $("lyricist").textContent = "作词：" + v.lyricist;
+    if (v.composer) $("composer").textContent = "作曲：" + v.composer;
   },
   pause(){ clearInterval(tPoll); clearInterval(tTick); clearInterval(tBatt); tPoll = tTick = tBatt = 0; hidden = true; paintSpin(); },
   resume(){ pl.pause(); hidden = false; poll(); battery(); tPoll = setInterval(poll, 500); tTick = setInterval(tick, 250); tBatt = setInterval(battery, 30000); }   // 0.5 秒问一次：跟得上车载歌词换行

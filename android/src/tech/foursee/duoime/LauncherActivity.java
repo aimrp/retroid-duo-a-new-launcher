@@ -400,6 +400,13 @@ public class LauncherActivity extends Activity {
       }));
     }
 
+    /** 异步查歌曲背景信息（作词/作曲/简介），结果回调 dl.songInfo(id, json)。 */
+    @JavascriptInterface public void songInfo(String id, String title, String artist) {
+      MediaHub.songInfo(LauncherActivity.this, title, artist, info -> main.post(() -> {
+        if (web != null) web.evaluateJavascript("window.dl && dl.songInfo(" + JSONObject.quote(id) + "," + JSONObject.quote(info) + ")", null);
+      }));
+    }
+
     /** 在上屏打开我们自己的"正在播放"页。 */
     @JavascriptInterface public void openPlayer() { main.post(() -> PlayerActivity.open(LauncherActivity.this, null)); }
 

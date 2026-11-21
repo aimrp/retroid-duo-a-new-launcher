@@ -175,6 +175,13 @@ public class PlayerActivity extends Activity {
       }));
     }
 
+    /** 异步查歌曲背景信息（作词/作曲/简介），结果回调 pl.songInfo(id, json)。 */
+    @JavascriptInterface public void songInfo(String id, String title, String artist) {
+      MediaHub.songInfo(PlayerActivity.this, title, artist, info -> main.post(() -> {
+        if (web != null) web.evaluateJavascript("window.pl && pl.songInfo(" + JSONObject.quote(id) + "," + JSONObject.quote(info) + ")", null);
+      }));
+    }
+
     /** 回到音乐 App 自己的界面去选歌单（选好后点下屏转盘的 MENU，或桌面上的图标回到这里）。 */
     @JavascriptInterface public void openApp() { main.post(PlayerActivity.this::openMusicApp); }
 

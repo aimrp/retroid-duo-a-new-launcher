@@ -67,7 +67,7 @@ html,body{margin:0;height:100%;overflow:hidden;color:var(--ink);font-family:"Not
 <div id="app">
   <div class="menubar">
     <img class="cat" src="mochi.png" alt="">
-    <b id="devname">Agent Deck</b>
+    <b id="devname" hidden></b>
     <span class="hello" id="hello">你好</span>
     <span class="when"><span id="date">--</span><b id="clock">--:--</b></span>
     <span class="batt" id="batt"></span>
@@ -115,7 +115,7 @@ let lastHello = -1;
 const USER = (() => { try { return (window.DuoHome && DuoHome.userName()) || ""; } catch (e) { return ""; } })();
 // 设备名：左上角显示的这台设备叫什么，打包时在 config.local.json 里填 device_name；没填就保持默认的 Agent Deck
 const DEVICE = (() => { try { return (window.DuoHome && DuoHome.deviceName()) || ""; } catch (e) { return ""; } })();
-if (DEVICE) document.getElementById("devname").textContent = DEVICE;
+if (DEVICE) { const dn = document.getElementById("devname"); dn.textContent = DEVICE; dn.hidden = false; }   // 本机：没填设备名就只留小猫 + 问候
 function greet(){
   const h = new Date().getHours();
   if (h >= 5 && h < 11) return "早上好";

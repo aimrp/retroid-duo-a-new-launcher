@@ -15,6 +15,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -112,20 +113,45 @@ final class MediaHub {
    */
   static final Set<String> LYRIC_MODE = Collections.synchronizedSet(new HashSet<>());
   private static final Map<String, String[]> LAST_RAW = Collections.synchronizedMap(new HashMap<>());
+  /** 每播放器：进入歌词模式前最后一次稳定的歌名（汽水音乐歌词模式下标题会变，用它还原歌名）。 */
+  private static final Map<String, String> SONG_NAME = Collections.synchronizedMap(new HashMap<>());
 
-  /** {歌名, 歌手, 当前歌词行（没有为 ""）} */
+  /**
+   * {歌名, 歌手, 当前歌词行（没有为 ""）}。歌词模式有两种：
+   *  - QQ 音乐"车载歌词"：歌手 = "歌名-歌手"，歌名/歌手都能从歌手字段还原；
+   *  - 汽水音乐等：标题直接变成当前这句歌词、歌手仍是歌手名（没有"-"）。同一首歌里（歌手+时长不变）标题变了就判定
+   *    歌词模式，歌名用进入歌词模式前最后一次稳定的标题。
+   */
   static String[] norm(String pkg, MediaMetadata md, long pos) {
     String t = str(md, MediaMetadata.METADATA_KEY_TITLE), a = str(md, MediaMetadata.METADATA_KEY_ARTIST);
     if (a.isEmpty()) a = str(md, MediaMetadata.METADATA_KEY_ALBUM_ARTIST);
     long dur = md == null ? 0 : md.getLong(MediaMetadata.METADATA_KEY_DURATION);
-    int dash = a.indexOf('-');
-    if (dash <= 0) { LYRIC_MODE.remove(pkg); LAST_RAW.put(pkg, new String[]{t, a, "" + dur}); return new String[]{t, a, ""}; }
-    String song = a.substring(0, dash).trim(), singer = a.substring(dash + 1).trim();
     String[] last = LAST_RAW.put(pkg, new String[]{t, a, "" + dur});
-    if (t.equals(song)) LYRIC_MODE.add(pkg);
-    else if (last != null && last[1].equals(a) && last[2].equals("" + dur) && !last[0].equals(t) && pos > 3000) LYRIC_MODE.add(pkg);
-    if (!LYRIC_MODE.contains(pkg)) return new String[]{t, a, ""};
-    return new String[]{song, singer, t.equals(song) ? "" : t};
+    boolean sameSong = last != null && last[1].equals(a) && last[2].equals("" + dur);
+    boolean titleChanged = sameSong && !last[0].equals(t) && !t.isEmpty();
+
+    // 1) QQ 音乐"车载歌词"：歌手 = "歌名-歌手"
+    int dash = a.indexOf('-');
+    if (dash > 0) {
+      String song = a.substring(0, dash).trim(), singer = a.substring(dash + 1).trim();
+      if (t.equals(song)) LYRIC_MODE.add(pkg);
+      else if (titleChanged && pos > 3000) LYRIC_MODE.add(pkg);
+      if (!LYRIC_MODE.contains(pkg)) return new String[]{t, a, ""};
+      return new String[]{song, singer, t.equals(song) ? "" : t};
+    }
+
+    // 2) 汽水音乐等：标题直接是歌词行，歌手没有 "-"
+    if (!sameSong) { LYRIC_MODE.remove(pkg); SONG_NAME.put(pkg, t); return new String[]{t, a, ""}; }
+    if (titleChanged) {
+      if (pos > 3000) {
+        if (!LYRIC_MODE.contains(pkg)) Log.e(TAG, "lyric mode for " + pkg + ": song='" + SONG_NAME.get(pkg) + "' title now lyric");
+        LYRIC_MODE.add(pkg);
+      }
+    } else {
+      SONG_NAME.put(pkg, t);   // 标题连续两次一样 = 这就是歌名，记下来备用
+    }
+    if (LYRIC_MODE.contains(pkg)) return new String[]{SONG_NAME.getOrDefault(pkg, t), a, t};
+    return new String[]{t, a, ""};
   }
 
   /** 当前歌曲快照：{pkg,label,has,playing,title,artist,album,duration,position,key,line,lyricMode,actions}。position 已按播放速度外推到"现在"。 */
@@ -327,6 +353,87 @@ final class MediaHub {
         return o.toString("UTF-8");
       }
     } catch (Exception e) { Log.w(TAG, "GET " + e); return ""; }
+    finally { if (h != null) h.disconnect(); }
+  }
+
+  // ---------------------------------------------------------------- 歌曲信息
+
+  /** 歌曲信息缓存：key -> JSON {"lyricist","composer","intro"}，"" 表示查过没有。 */
+  private static final Map<String, String> INFO = Collections.synchronizedMap(new HashMap<>());
+
+  /** 异步查歌曲背景（作词/作曲/简介），回调在后台线程：JSON 文本，查不到给 "{}"。 */
+  static void songInfo(Context c, String title, String artist, Consumer<String> done) {
+    String k = key(title, artist);
+    String hit = INFO.get(k);
+    if (hit != null) { done.accept(hit); return; }
+    final String apiKey = DuoIme.pref(c, "api_key", "");
+    final String model = DuoIme.pref(c, "refine_model", "Qwen/Qwen3.5-9B");
+    if (apiKey.isEmpty()) { INFO.put(k, "{}"); done.accept("{}"); return; }
+    File dir = new File(c.getFilesDir(), "info");
+    File f = new File(dir, Integer.toHexString(k.hashCode()) + ".json");
+    NET.execute(() -> {
+      String r = INFO.get(k);
+      if (r == null) {
+        try { if (f.exists()) r = new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8); } catch (Exception ignored) { }
+        if (r == null) {
+          r = fetchInfo(title, artist, apiKey, model);
+          if (!r.isEmpty()) { try { dir.mkdirs(); try (FileOutputStream o = new FileOutputStream(f)) { o.write(r.getBytes(StandardCharsets.UTF_8)); } } catch (Exception ignored) { } }
+        }
+        INFO.put(k, r);
+      }
+      done.accept(r);
+    });
+  }
+
+  /** 歌曲资料的提示词：让模型只回一个 JSON，字段固定。 */
+  static final String INFO_PROMPT = "你是音乐资料助手。用户给出一首歌，你根据你的知识用最简短的中文介绍它。" +
+      "只输出一个 JSON 对象，不要任何其他文字、不要代码块标记，字段固定为：{\"lyricist\":\"作词人\",\"composer\":\"作曲人\",\"intro\":\"一句话背景或获奖，60字内\"}。" +
+      "不知道的字段填空字符串；intro 要极简、客观、不编造。";
+
+  /** 用硅基流动的模型总结歌曲资料（作词/作曲/简介）。没配 key 或失败给 "{}"。 */
+  static String fetchInfo(String title, String artist, String apiKey, String model) {
+    if (title.isEmpty()) return "{}";
+    try {
+      String user = "《" + title + "》 歌手：" + artist;
+      JSONObject body = new JSONObject()
+          .put("model", model)
+          .put("temperature", 0)
+          .put("max_tokens", 400)
+          .put("enable_thinking", false)
+          .put("messages", new JSONArray()
+              .put(new JSONObject().put("role", "system").put("content", INFO_PROMPT))
+              .put(new JSONObject().put("role", "user").put("content", user)));
+      String resp = post("https://api.siliconflow.cn/v1/chat/completions", body.toString(), apiKey);
+      if (resp.isEmpty()) return "{}";
+      String content = new JSONObject(resp).optJSONArray("choices").optJSONObject(0)
+          .optJSONObject("message").optString("content", "").trim();
+      content = content.replaceFirst("^```(?:json)?\\s*", "").replaceFirst("\\s*```$", "").trim();
+      JSONObject o = new JSONObject(content);
+      if (!o.has("lyricist")) o.put("lyricist", "");
+      if (!o.has("composer")) o.put("composer", "");
+      if (!o.has("intro")) o.put("intro", "");
+      return o.toString();
+    } catch (Exception e) { Log.w(TAG, "songInfo " + title + ": " + e); return "{}"; }
+  }
+
+  /** POST JSON，带 Bearer 鉴权。失败返回 ""。 */
+  static String post(String url, String json, String auth) {
+    HttpURLConnection h = null;
+    try {
+      h = (HttpURLConnection) new URL(url).openConnection();
+      h.setConnectTimeout(8000); h.setReadTimeout(12000);
+      h.setRequestMethod("POST");
+      h.setRequestProperty("Content-Type", "application/json");
+      if (auth != null && !auth.isEmpty()) h.setRequestProperty("Authorization", "Bearer " + auth);
+      h.setDoOutput(true);
+      try (OutputStream o = h.getOutputStream()) { o.write(json.getBytes(StandardCharsets.UTF_8)); }
+      if (h.getResponseCode() != 200) return "";
+      try (InputStream in = h.getInputStream()) {
+        ByteArrayOutputStream o = new ByteArrayOutputStream(); byte[] b = new byte[8192]; int n;
+        while ((n = in.read(b)) > 0) o.write(b, 0, n);
+        return o.toString("UTF-8");
+      }
+    } catch (Exception e) { Log.w(TAG, "POST " + e); return ""; }
     finally { if (h != null) h.disconnect(); }
   }
 }
