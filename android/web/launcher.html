@@ -81,6 +81,7 @@ html,body{margin:0;height:100%;overflow:hidden;color:var(--ink);font-family:"Not
 .lcd .info{flex:1;min-height:0;font-size:13px;line-height:1.55;overflow:hidden;text-align:left;
  border-top:1px dashed rgba(27,42,55,.35);padding-top:6px;margin-top:4px;color:#22333f}
 .lcd .info:empty{border-top:none;padding-top:0;margin-top:0}
+.lcd .info.loading{color:#8a9aa7;opacity:.85}
 .lcd .pb{height:6px;border:1px solid #1b2a37;border-radius:3px;position:relative;overflow:hidden}
 .lcd .pb i{position:absolute;left:0;top:0;bottom:0;width:0;background:#1b2a37}
 .lcd .st{font-size:14px;display:flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums}
@@ -208,7 +209,7 @@ window.dl = {
     if (id !== NP.key) return;
     let v; try { v = JSON.parse(info); } catch(e) { return; }
     const el = document.getElementById("lcdInfo");
-    if (el && v.intro) el.textContent = v.intro;
+    if (el) { el.textContent = (v && v.intro) || ""; el.classList.remove("loading"); }
   }
 };
 
@@ -234,8 +235,13 @@ function syncPlay(){
       if (np.has) {
         if (np.key !== NP.key) {
           NP.key = np.key;
-          const info = document.getElementById("lcdInfo"); if (info) info.textContent = "";
-          if (np.title) H.songInfo(np.key, np.title, np.artist || "");
+          const info = document.getElementById("lcdInfo");
+          if (np.title) {
+            if (info) { info.textContent = "正在搜索…"; info.classList.add("loading"); }
+            H.songInfo(np.key, np.title, np.artist || "");
+          } else if (info) {
+            info.textContent = ""; info.classList.remove("loading");
+          }
         }
       } else { NP.key = null; }
     } catch(e) {}

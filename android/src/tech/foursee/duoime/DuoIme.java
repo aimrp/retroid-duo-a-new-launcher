@@ -191,7 +191,7 @@ public class DuoIme extends InputMethodService {
   @Override public void onStartInputView(EditorInfo info, boolean restarting) {
     super.onStartInputView(info, restarting);
     if (web == null) createKeyboard();
-    if (!canOverlay()) {
+    if (DuoAccess.inst == null && !canOverlay()) {
       showStrip("", null);
       if (strip != null) strip.setText("⚠ 请在“Agent Deck 设置”里允许悬浮窗，键盘才能显示在下屏");
       return;
@@ -216,27 +216,44 @@ public class DuoIme extends InputMethodService {
 
   boolean canOverlay() { return Settings.canDrawOverlays(this); }
 
+  private WindowManager shownWm;   // 键盘这次挂在哪个 WindowManager 上，收起时从它上面拿掉
+
+  /**
+   * 优先用辅助功能浮层：文件、设置、安装器等页面开了 HIDE_NON_SYSTEM_OVERLAY_WINDOWS，
+   * 普通悬浮窗会被系统藏掉（窗口在，但永远不显示），辅助功能浮层不受影响。
+   * 辅助功能没开时退回普通悬浮窗。
+   */
   private void showOverlay() {
-    if (overlayShown || web == null || overlayWm == null) return;
+    if (overlayShown || web == null) return;
+    DuoAccess a = DuoAccess.inst;
+    WindowManager acc = null;
+    if (a != null) { try { acc = a.bottomOverlayWm(); } catch (Exception e) { Log.e(TAG, "a11y overlay wm", e); } }
+    if (acc != null && attach(acc, WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY)) return;
+    if (overlayWm != null && canOverlay()) attach(overlayWm, WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY);
+  }
+
+  private boolean attach(WindowManager w, int type) {
     WindowManager.LayoutParams lp = new WindowManager.LayoutParams(
-        WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT,
-        WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY,
+        WindowManager.LayoutParams.MATCH_PARENT, WindowManager.LayoutParams.MATCH_PARENT, type,
         WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
             | WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
         PixelFormat.OPAQUE);
     lp.gravity = Gravity.TOP | Gravity.START;
     lp.setTitle("DuoImeKeyboard");
     try {
-      overlayWm.addView(web, lp);
+      w.addView(web, lp);
+      shownWm = w;
       overlayShown = true;
       web.onResume();
-    } catch (Exception e) { Log.e(TAG, "overlay failed", e); }
+      return true;
+    } catch (Exception e) { Log.e(TAG, "overlay failed type=" + type, e); return false; }
   }
 
   private void hideOverlay() {
     if (!overlayShown) return;
-    try { overlayWm.removeView(web); } catch (Exception ignored) { }
+    try { shownWm.removeView(web); } catch (Exception ignored) { }
     overlayShown = false;
+    shownWm = null;
   }
 
   // ---------------------------------------------------------------- config / editor

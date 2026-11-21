@@ -375,13 +375,16 @@ final class MediaHub {
       String r = INFO.get(k);
       if (r == null) {
         try { if (f.exists()) r = new String(Files.readAllBytes(f.toPath()), StandardCharsets.UTF_8); } catch (Exception ignored) { }
+        if ("{}".equals(r)) r = null;                          // 旧的空结果不算缓存，重新搜
         if (r == null) {
           r = fetchInfo(title, artist, apiKey, model);
-          if (!r.isEmpty()) { try { dir.mkdirs(); try (FileOutputStream o = new FileOutputStream(f)) { o.write(r.getBytes(StandardCharsets.UTF_8)); } } catch (Exception ignored) { } }
+          if (!"{}".equals(r)) {                               // 成功才落盘，失败下次再试
+            try { dir.mkdirs(); try (FileOutputStream o = new FileOutputStream(f)) { o.write(r.getBytes(StandardCharsets.UTF_8)); } } catch (Exception ignored) { }
+          }
         }
-        INFO.put(k, r);
+        if (!"{}".equals(r)) INFO.put(k, r);                   // 失败不记内存，下次重试
       }
-      done.accept(r);
+      done.accept(r == null ? "{}" : r);
     });
   }
 

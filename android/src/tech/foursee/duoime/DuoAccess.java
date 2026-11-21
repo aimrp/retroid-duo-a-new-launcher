@@ -153,6 +153,28 @@ public class DuoAccess extends AccessibilityService {
     } catch (Exception e) { Log.e(TAG, "ensureBottom", e); }
   }
 
+  // ---------------------------------------------------------------- 下屏键盘用的浮层
+  private WindowManager bottomWm;
+  private int bottomWmDisplay = -1;
+
+  /**
+   * 下屏的辅助功能浮层（TYPE_ACCESSIBILITY_OVERLAY）。
+   * 文件、设置、安装器这类页面会开 HIDE_NON_SYSTEM_OVERLAY_WINDOWS，系统会把所有普通悬浮窗
+   * （TYPE_APPLICATION_OVERLAY）藏掉，键盘就看不见了；辅助功能浮层不在被藏之列。主线程调用。
+   */
+  WindowManager bottomOverlayWm() {
+    int b = bottomId();
+    if (b < 0) return null;
+    if (bottomWm == null || bottomWmDisplay != b) {
+      Display d = getSystemService(DisplayManager.class).getDisplay(b);
+      if (d == null) return null;
+      bottomWm = createDisplayContext(d).createWindowContext(WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY, null)
+          .getSystemService(WindowManager.class);
+      bottomWmDisplay = b;
+    }
+    return bottomWm;
+  }
+
   // ---------------------------------------------------------------- touchpad
   private static final class CursorView extends View {
     private final Paint fill = new Paint(Paint.ANTI_ALIAS_FLAG), edge = new Paint(Paint.ANTI_ALIAS_FLAG);
